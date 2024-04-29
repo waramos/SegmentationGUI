@@ -1,0 +1,15 @@
+<h1>Masking Tool</h1>
+
+<p>The masking tool allows for manual refinement of the segmentation mask after initial segmentation has been performed by the segmentation GUI.
+The masking tool can also stand alone and be launched from the command line if the user would like to edit a mask from the workspace.
+<ul>
+	<li>A painting tool, <b>"Turbo Paint Brush"</b>, which allows the user to create mouse strokes to select regions they want to mask. The radius of the brush can be adjusted</li>
+	<li>A freehand selection tool, <b>"Bounding Curves"</b>, which allows the user to mask a bounded region.</li>
+	<li>A smart masking tool, <b>"Seed Region"</b>, which finds pixels similar to the one selected by the user upon clicking based off of a user defined tolerance.
+	<li>A point selection tool, <b>"Point"</b>, which appends a single pixel to the mask.</li>
+	<li>A single ROI appending tool, <b>"Touch Up"</b>, which appends a circular ROI to the mask. The radius can be adjusted. </li>
+	<li><b>Close interior</b> will close the inside of the region last drawn via the Turbo Paint Brush method.</li>
+	<li><b>Close all</b> will close the inside of the entire mask regardless of how it was drawn. Note that this method and the method above involve a convex hull.</li>
+</ul>
+</p>
+<hr>

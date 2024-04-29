@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title> GUI Manual </title>
+</head>
+
+<link rel="stylesheet" href="HelpStyle.css">
+
+<body>
+
+<h1>Segmentation Workflow Overview</h1>
+
+<img src="SegmentationWorkflow.svg" width="512" height="512"> </img>
+
+<h2> Image Loading </h2>
+<p>
+Multiple file formats of varying dimensionality can be read in: 2D-4D array in .mat file, 2D images as .png, .jpeg/.jpg, 2D-3D images in .tif/.tiff or .ome.tif (bioformats).
+By default, lazy loading is enabled - one, 2D image slice is read in at a time by the image server module.
+The GUI and the underlying server module 
+</p>
+
+<h2>Preprocessing</h2>
+<p>
+Log Scaling (optional) &rarr; Inversion (optional) &rarr; Denoising (optional) &rarr; 
+User Defined Transform (optional via engine config) &rarr; Convolution Neural Network (optional) &rarr; User Defined Image Taper (optional) &rarr; 
+</p>
+
+<h2>Parametric Segmentation</h2>
+<p>
+Segmentation engine implements three parameter segmentation algorithms to reduce complexity of algorithm refinement while increasing reproducibility and ease of use for the end user.
+The engine can accomodate additional methods as long as they are properly configured.
+See table below for preset methods available in the GUI.
+</p>
+
+<table>
+	<tr>
+		<th>Method</th>
+		<th>Processing Steps</th>
+		<th>Parameters</th>
+	</tr>
+
+	<tr>
+		<td>Intensity Threshold</td>
+		<td>Thresholds image based on intensity, morphologically filters image to smooth boundaries, computes alpha shape to determine boundary</td>
+		<td>Threshold, radius, shrink factor</td>
+	</tr>
+	<tr>
+		<td>Gradient Threshold</td>
+		<td>Smooths image with gaussian filter, clips image below threshold, computes gradient magnitude and applies threshold on gradient</td>
+		<td>Standard deviation, clipping threshold, gradient threshold</td>
+	</tr>
+	<tr>
+		<td>Blob Hull Seg</td>
+		<td>Computes a clipped Laplacian of Gaussian (cLoG), threshold the cLoG, computes alpha shape</td>
+		<td>Standard deviation, threshold, shrink factor</td>
+	</tr>
+	<tr>
+		<td>Bradley Masked</td>
+		<td>Adaptively thresholds image based on feature size, binarizes image, computes alpha shape</td>
+		<td>Adaptive filter radius, threshold, shrink factor</td>
+	</tr>
+	<tr>
+		<td>Threshold and Sift</td>
+		<td>Thresholds image, eliminates connected components smaller and larger than specified bounds on sizes, computes the convex hull of remaining masked region(s)</td>
+		<td>Threshold, minimum size, maximum size</td>
+	</tr>
+	<tr>
+		<td>Tolerance Sift</td>
+		<td>Thresholds image based on intensity, eliminates connected components larger or smaller than the target size by some tolerance in size, computes convex hull of remaining masked region(s)</td>
+		<td>Theshold, target size, tolerance</td>
+	</tr>
+</table>
+
+<p>
+<b>References: </b>
+<br>
+Bradley, D., & Roth, G. (2007). 
+Adaptive thresholding using the integral image. 
+<i>Journal of graphics tools, 12</i>(2), 13-21.
+</p>
+
+
+<h2>Postprocessing Refinement</h2>
+<p>
+Configurable Active Contours (optional) &rarr; Manual Refinement via Masking Tool GUI (optional)
+</p>
+
+<br>
+
+<h1>Toolbar Button Key</h1>
+
+<h2>Load Image</h2>
+<img src="GUIRelated\SVGIcons\upload.svg" width="40" height="40"> </img>
+<p>The load image button will launch a dialog window for the user to select a file to load into the GUI. 
+This will initially open the folder that the GUI files are currently in. 
+Upon loading in an image, the dialow window will instead start in the directory of the file that was last loaded in.
+The user can load in .mat image stacks up to 4D (XYZT), .tif up to 3D (XYZ), or other image formats like .png and .jpeg simply as 2D images.
+</p>
+<hr>
+
+
+<h2>Instant Navigation</h2>
+<img src="GUIRelated\SVGIcons\compass.svg" width="32" height="40"> </img>
+<p>Instant navigation button will launch a dialog box asking the user to specify the specific slice and timepoint they want to navigate to.
+</p>
+<hr>
+
+
+<h2>Previous Timepoint</h2>
+<img src="GUIRelated\SVGIcons\move-left.svg" width="40" height="40"> </img>
+<p>Navigate to the previous timepoint (current timepoint - 1) if your data has a fourth dimension with size greater than 1.
+</p>
+<hr>
+
+
+<h2>Next Timepoint</h2>
+<img src="GUIRelated\SVGIcons\move-right.svg" width="40" height="40"> </img>
+<p>Navigate to the next timepoint (current timepoints + 1) if your data has a fourth dimension with size greater than 1.
+</p>
+<hr>
+
+
+<h2>Previous Slice</h2>
+<img src="GUIRelated\SVGIcons\move-up.svg" width="40" height="40"> </img>
+<p>Navigate to the previous slice (current slice - 1) in a stack if your data has a third dimension with size greater than 3. 
+Images with a third dimension of size 3 are assumed to be an RGB image.
+</p>
+<hr>
+
+
+<h2>Next Slice</h2>
+<img src="GUIRelated\SVGIcons\move-down.svg" width="40" height="40"> </img>
+<p>Navigate to the next slice (current slice + 1) in a stack if your data has a third dimension with size greater than 3. 
+Images with a third dimension of size 3 are assumed to be an RGB image.
+</p>
+<hr>
+
+
+<h2>Batch Processing</h2>
+<img src="GUIRelated\SVGIcons\stack-3.svg" width="40" height="40"></img>
+<p>Apply current segmentation settings to all timepoints and/or slices in the selected dataset.
+Note, batch processing will operate fastest when autocontrast is off and manual contrast limits have been set instead.
+Also note that as more preprocessing options are selected, segmentation may take longer.
+</p>
+<hr>
+
+
+<h2>Auto Contrast</h2>
+<img src="GUIRelated\SVGIcons\brightness.svg" width="40" height="40"> </img>
+<p>Image shown in the viewing window will be autocontrasted by a percentile approach if grayscale. 
+By default, the bottom 1%-ile and the top 99%-ile of the median filtered image are set as the upper bound and the lower bound, respectivel, in the display.
+Autocontrast not usable for RGB images.
+</p>
+<hr>
+
+
+<h2>Manual Contrast</h2>
+<img src="GUIRelated\SVGIcons\brightness-window.svg" width="40" height="40"> </img>
+<p>Manually adjust contrast via a GUI with a histogram of the pixels displayed.
+Moving the upper bound of the range will saturate values above the bound.
+Moving the lower bound of the range will clip the values below the bound.
+Simply close the window when done configuring your range.
+This button will stay pressed after a manual adjusment is made. 
+If clicked again, the image range will revert to the default - lower and upper bounds will be minimum and maximum values of the image, respectively.
+</p>
+<hr>
+
+
+<h2>Crop Image</h2>
+<img src="GUIRelated\SVGIcons\crop.svg" width="40" height="40"> </img>
+<p>The crop image button will launch a GUI for the user to set up a crop region to crop through their data. 
+This crop will apply to the lazy loading occuring in the image server class as only the 2D ROI defined by the crop will be loaded in. 
+The actual original data is not affected and any computed segmentation is transformed back to the original image coordinates.
+</p>
+<hr>
+
+
+<h2>Target Color Transform</h2>
+<img src="GUIRelated\SVGIcons\color-picker.svg" width="40" height="40"> </img>
+<p>Transform an RGB image to grayscale by first converting to CIELAB space and then treating each pixel as a vector that is converted to an angle value relative to a target vector.
+The user is prompted to draw a point atop their image in a window.
+A local neighborhood is then determined around the pixel selected by the point.
+The average color of the neighborhood is then set as the color target vector.
+The angle between a pixel and the color target vector is computed and set as the new value of the pixel in order to transform the image.
+Because the image is first converted to CIELAB space, luminance is considered in addition to hue.
+</p>
+
+<p>
+<b>References: </b>
+<br>
+Dony, R. D., & Wesolkowski, S. (1999, May). 
+Edge detection on color images using RGB vector angles. 
+In <i> Engineering Solutions for the Next Millennium. 
+1999 IEEE Canadian Conference on Electrical and Computer Engineering </i>
+(Cat. No. 99TH8411) (Vol. 2, pp. 687-692). IEEE. 
+<br>
+<br>
+Wesolkowski, S. B. (1999). 
+Color image edge detection and segmentation: A comparison of the vector angle and the euclidean distance color similarity measures 
+(Master's thesis, University of Waterloo).
+</p>
+<hr>
+
+
+<h2>Log Scale Image</h2>
+<img src="GUIRelated\SVGIcons\log.svg" width="40" height="40"> </img>
+<p>The log scale button will toggle the log scaling of images. 
+Applying a log scale to an image will compress the intensity range and make subtle features easier to see and detect.</p>
+<hr>
+
+
+<h2>Invert Image</h2>
+<img src="GUIRelated\SVGIcons\data-transfer-both.svg" width="40" height="40"> </img>
+<p>The inversion button will toggle the inversion of images.
+Inverting an image is done by subtracting pixels values from the maximum so that the darkest (lowest) valued pixels now become the brightest (highest) and the brightest from the original image become the darkest.
+</p>
+<hr>
+
+
+<h2>Denoise Image</h2>
+<img src="GUIRelated\SVGIcons\noise-toggle.svg" width="40" height="40"> </img>
+<p>The denoise button will prompt the user to select a denoising method from a list of available options. 
+Additional methods can be added for the segmentation engine to use.
+Methods should be configured as a function (.m file) with a 2D image as input and should have default values for any additional input arguments.
+Denoising function files can be saved in the DenoisingMethods folder under the EngineFiles folder.
+The table below outlines the preset options available to choose from.
+<table>
+	<tr>
+		<th>Method</th>
+		<th>Algorithm</th>
+	</tr>
+
+	<tr>
+		<td>Down Scale Up Scale</td>
+		<td>Image is down scaled and scaled back up to its original size. This smooths over small features and noise.</td>
+	</tr>
+	<tr>
+		<td>Median Filter and Smooth</td>
+		<td>Computes median filtered image and smooths with a gaussian filter.</td>
+	</tr>
+	<tr>
+		<td>Median Filter Von Neumann Neighborhood Hood</td>
+		<td>Computes the median filtered image using a von Neumann neighborhood instead of a Moore neighborhood (4-connectedness instead of 8).</td>
+	</tr>
+</table>
+</p>
+<hr>
+
+
+<h2>Change Deep Learning Network</h2>
+<img src="GUIRelated\SVGIcons\brain-research.svg" width="40" height="40"> </img>
+<p>The change network button will launch a window for the user to select from a list of deep learning networks available to preprocess their data. 
+Available options are expected to be located in the Networks folder under the AI folder under the EngineFiles folder. 
+Networks should be saved in a .mat file and have a corresponding function file (.m format) that will take a 2D image and the network as inputs.
+The engine class will then automatically recognize networks with appropriate configuration as viable options.
+</p>
+<hr>
+
+
+<h2>Convolution Neural Network (CNN)</h2>
+<img src="GUIRelated\SVGIcons\brain-bulb.svg" width="40" height="40"> </img>
+<p>The CNN button will toggle the convolutional neural network preprocessing of images. 
+Whatever network is loaded in already will be utilized. 
+If a network is not already loaded in, the user will be prompted to select one to preload in.
+We offer a pretrained Resnet-18 with DeepLabV3+ architecture 
+</p>
+
+<p>
+<b>References: </b>
+<br>
+Chen, L. C., Zhu, Y., Papandreou, G., Schroff, F., & Adam, H. (2018). 
+Encoder-decoder with atrous separable convolution for semantic image segmentation. 
+In <i>Proceedings of the European conference on computer vision (ECCV)</i> (pp. 801-818).
+<br>
+<br>
+He, K., Zhang, X., Ren, S., & Sun, J. (2016). 
+Deep residual learning for image recognition. 
+In <i>Proceedings of the IEEE conference on computer vision and pattern recognition</i> (pp. 770-778).
+</p>
+<hr>
+
+
+<h2>Taper Image</h2>
+<img src="GUIRelated\SVGIcons\style-border.svg" width="40" height="40"> </img>
+<p>The taper image button will launch a GUI that prompts the user to draw an ROI. 
+The resulting ROI is set as a mask and the area outside the region is set to zero.
+This is then smoothed and multiplied elementwise with the image so that pixels outside the region taper off to zero. 
+This can help limit which regions are considered as valid signal when segmenting.
+</p>
+<hr>
+
+
+<h2>Change Segmentation Method</h2>
+<img src="GUIRelated\SVGIcons\tools.svg" width="40" height="40"> </img>
+<p>The user will be prompted to select from a list of available segmentation methods.
+By default, a simple intensity threshold algorithm is preset.
+The user can add additional methods to the available options by creating MATLAB function files that following the configuration conventions used for other available options.
+</p>
+<hr>
+
+
+<h2>Autoparametric Estimation</h2>
+<img src="GUIRelated\SVGIcons\type.svg" width="40" height="40"> </img>
+<p>The autoparams button will automatically estimate values for the three parameters. 
+The algorithm used to determine reasonable estimated values will depend on the selected segmentation method. 
+The estimated values will not always be accurate and they are meant to be a starting point for the user rather than a well refined result. 
+</p>
+<hr>
+
+
+<h2>Active Contours</h2>
+<img src="GUIRelated\SVGIcons\activity.svg" width="40" height="40"> </img>
+<p>The active contours button will toggle whether or not active contours are to be applied to the segmented ROI.
+This is considered a postprocessing step / segmentation refinement.
+</p>
+
+<p>
+<b>References:</b>
+<br>
+Chan, T. F., & Vese, L. A. (2001). 
+Active contours without edges. 
+<i>IEEE Transactions on image processing</i>, 10(2), 266-277.
+</p>
+<hr>
+
+
+<h2>Masking Tool</h2>
+<img src="GUIRelated\SVGIcons\mask-square.svg" width="40" height="40"> </img>
+<p>The masking tool button will launch a GUI to manual edit the region that has been segmented. 
+This is considered a postprocessing step / segmentation refinement.
+This GUI has the following options for adjusting the masking: 
+<ul>
+	<li>A painting tool, <b>"Turbo Paint Brush"</b>, which allows the user to create mouse strokes to select regions they want to mask. The radius of the brush can be adjusted</li>
+	<li>A freehand selection tool, <b>"Bounding Curves"</b>, which allows the user to mask a bounded region.</li>
+	<li>A smart masking tool, <b>"Seed Region"</b>, which finds pixels similar to the one selected by the user upon clicking based off of a user defined tolerance.
+	<li>A point selection tool, <b>"Point"</b>, which appends a single pixel to the mask.</li>
+	<li>A single ROI appending tool, <b>"Touch Up"</b>, which appends a circular ROI to the mask. The radius can be adjusted. </li>
+	<li><b>Close interior</b> will close the inside of the region last drawn via the Turbo Paint Brush method.</li>
+	<li><b>Close all</b> will close the inside of the entire mask regardless of how it was drawn. Note that this method and the method above involve a convex hull.</li>
+</ul>
+</p>
+<hr>
+
+
+<h2>Colormap</h2>
+<img src="GUIRelated\SVGIcons\palette.svg" width="40" height="40"> </img>
+<p>The colormap button will prompt the user to select a colormap (if image is grayscale). 
+</p>
+<hr>
+
+
+<h2>Contour Color</h2>
+<img src="GUIRelated\SVGIcons\color-filter.svg" width="40" height="40"> </img>
+<p> The contour color button will prompt the user to select a color for the contour outline.
+</p>
+<hr>
+
+
+<h2>Contour</h2>
+<img src="GUIRelated\SVGIcons\circle-dashed.svg" width="40" height="40"> </img>
+<p>The contour button will toggle a line plot representing the contour around the segmented ROI.
+</p>
+<hr>
+
+
+<h2>Transpose Image</h2>
+<img src="GUIRelated\Icons\Transpose.png" width="40" height="40"> </img>
+<p>The transpose button will toggle between the transpose and original view of the image. 
+</p>
+<hr>
+
+
+<h2>Major/Minor Axes</h2>
+<img src="GUIRelated\SVGIcons\border-inner.svg" width="40" height="40"> </img>
+<p>The major/minor axes button will toggle the plot of the major and minor moments of inertia of the segmented ROI. 
+</p>
+<hr>
+
+
+<h2>Colorbar</h2>
+<img src="GUIRelated\SVGIcons\ruler.svg" width="40" height="40"> </img>
+<p>The colorbar button will toggle the display of a colorbar if the image is grayscale. 
+The colorbar will display the range of pixel intensity values from the color limits set in the viewer contrast.
+The colorbar also shows the correlation between colors and pixel intensity based off of the set colormap.
+</p>
+<hr>
+
+
+<h2>Overlay</h2>
+<img src="GUIRelated\SVGIcons\selection.svg" width="40" height="40"> </img>
+<p>The overlay button will toggle displaying an ROI object overlayed atop the region that has been segmented. 
+</p>
+<hr>
+
+
+<h2>Processing Net Layers</h2>
+<img src="GUIRelated\SVGIcons\view-grid.svg" width="40" height="40"> </img>
+<p> A window will be launched with visualizations of each step in the processing pipeline, layers of the processing "net".
+The first plotted image will be the raw data with all transforms and preprocessing applied prior to being fed forward through the net.
+This visualizer will also show the final ROI contour atop the original raw image.
+</p>
+<hr>
+
+
+<h2>Auxiliary View</h2>
+<img src="GUIRelated\SVGIcons\photo.svg" width="40" height="40"> </img>
+<p> The auxiliary view button will toggle between the original raw input image and the auxiliary image that results from preprocessing steps.
+The auxiliary image is the data that is input into the parametric segmentation 
+</p>
+<hr>
+
+
+<h2>Dark Mode</h2>
+<img src="GUIRelated\SVGIcons\half-moon.svg" width="40" height="40"> </img>
+<p> The dark mode button will toggle the GUI between dark and light mode.
+When activated, the GUI color theme changes to appears darker.
+</p>
+<hr>
+
+
+<h2>Reset</h2>
+<img src="GUIRelated\SVGIcons\restart.svg" width="40" height="40"> </img>
+<p>Reset button will reset the parameter values to default, initial values. 
+The segmentation method will reset to intensity threshold and all preprocessing will be turned off.
+</p>
+<hr>
+
+<h2> </h2>
+<img src="GUIRelated\SVGIcons\question-mark.svg" width="40" height="40"> </img>
+<p> The help button launches this page to provide concise information on using the GUI.
+</p>
+<hr>
+
+</body>
+
+</html>

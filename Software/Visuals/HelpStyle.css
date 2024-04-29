@@ -1,0 +1,20 @@
+body {
+  font-family: system-ui;
+  color: black;
+  text-align: justify;
+}
+
+.Reference {
+	font-family: system-ui;
+	color: black;
+	font-style: italic;
+}
+
+table {
+	border: 1px solid black;
+	width: 100%;
+}
+
+td {
+	border:1px solid black;
+}

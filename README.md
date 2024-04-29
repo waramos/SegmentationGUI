@@ -9,9 +9,9 @@ To get additional information about this project and our work, please refer to t
 
 
 ## GUI
-A screenshot of the GUI upon launch shows a cutaway view of a segmented Paryhale hawaiiensis embryo with a DAPI stain imaged on a diSPIM system.
+A screenshot of the GUI upon launch shows a cutaway view of a segmented [*Parhyale hawaiensis*] embryo with a DAPI stain imaged on a diSPIM system.
 
-![GUI] (https://github.com/waramos/SegmentationGUI/md_images/GUI_launch.png)
+![GUI](https://github.com/waramos/SegmentationGUI/blob/main/md_images/GUI_launch.png)
 
 
 ### Use

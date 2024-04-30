@@ -893,31 +893,27 @@ classdef SegmentationEngine < handle
             end
         
             % Buttons for GUI
-            IconFolder   = ['GUIRelated' filesep 'SVGIcons' filesep];
+            IconFolder   = []; %['GUIRelated' filesep 'SVGIcons' filesep];
             ToolBar      = uitoolbar('Parent', f);
             Btn1         = uipushtool(ToolBar);
             Btn2         = uipushtool(ToolBar);
             Btn3         = uipushtool(ToolBar);
             Btn4         = uipushtool(ToolBar);
-            % Setting icons and tooltips
-            if exist(IconFolder, 'dir') == 7
-                % In case the user want to use this class as stand alone
-                f.Icon       = [IconFolder 'color-picker.png'];
-                Btn1.Icon    = [IconFolder 'accept.svg'];
-                Btn2.Icon    = [IconFolder 'cancel.svg'];
-                Btn3.Icon    = [IconFolder 'restart.svg'];
-                Btn4.Icon    = [IconFolder 'gray-filter.svg'];
-            else
-                f.Icon       = [ipticondir 'tool_eyedropper_grey.png'];
-                Btn1.Icon    = [ipticondir 'CreateMask_24px.png'];
-                Btn2.Icon    = [ipticondir 'failed_24.png'];
-                Btn3.Icon    = [ipticondir 'Reset_24.png'];
-                Btn4.Icon    = [ipticondir 'textures_24.png'];
-            end
+
+            % Vector graphic icons
+            f.Icon       = [IconFolder 'color-picker.png'];
+            Btn1.Icon    = [IconFolder 'accept.svg'];
+            Btn2.Icon    = [IconFolder 'cancel.svg'];
+            Btn3.Icon    = [IconFolder 'restart.svg'];
+            Btn4.Icon    = [IconFolder 'gray-filter.svg'];
+
+            % Tooltips
             Btn1.Tooltip         = 'Done';
             Btn2.Tooltip         = 'Cancel';
             Btn3.Tooltip         = 'Clear';
             Btn4.Tooltip         = 'Grayscale Luminance Transform';
+
+            % Callbacks
             Btn1.ClickedCallback = @ConfirmSelection;
             Btn2.ClickedCallback = @CancelSelection;
             Btn3.ClickedCallback = @ClearSelection;
@@ -1450,7 +1446,7 @@ classdef SegmentationEngine < handle
             end
             OldSz  = size(obj.EngineVisualizer.Plots(1).CData);
             NewSz  = size(obj.Outputs{1});
-            diffSz = any(OldSz ~= NewSz);
+            diffSz = (ndims(OldSz) ~= ndims(NewSz)) || any(OldSz ~= NewSz);
             if ~isempty(obj.EngineVisualizer) && isvalid(obj.EngineVisualizer.Figure)
                 for i = 1:obj.nlayers + 1
 

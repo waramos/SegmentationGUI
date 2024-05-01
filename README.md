@@ -17,8 +17,8 @@ Here we show three different algorithms used within the GUI on the same *Caenorh
 
 From left to right, we show the GUIs capability to overlay three different result formats:
 1.	**Contour**: a closed curve that represents the boundary of an ROI
-2.	**Point cloud**: a set of points representing detections or centroids of segmented ROIs
-3.	**Masks**: a binary image with a value of 1 inside the ROI and 0 elsewhere
+2.	**Masks**: a binary image with a value of 1 inside the ROI and 0 elsewhere
+3.	**Point cloud**: a set of points representing detections or centroids of segmented ROIs
 
 The settings tab has settings for active contours, visualization, and adjusting where the user would like to stop in the processing pipeline. Mask opacity will apply to pipelines that result in **masks**. The point marker and marker width properties apply to **point clouds**. Lastly, the line width property applies to **contour** outputs.
 

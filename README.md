@@ -18,7 +18,7 @@ A screenshot of the GUI upon launch shows a cutaway view of the software’s com
 
 
 ### GUI Result Types
-Here we show three different algorithms used within the GUI on the same *Caenorhabditis elegans* embryo with a Histone marker imaged on a diSPIM system.
+Here we show three different algorithms used within the GUI on the same *Caenorhabditis elegans* embryo with a histone marker imaged on a diSPIM system.
 ![GUI Result Types](md_images/GUI_ResultFormatTypes.png)
 
 From left to right, we show the GUIs capability to overlay three different result formats:
@@ -52,10 +52,10 @@ The underlying architecture and modular framework that we have developed to expe
 
 
 ## Workflow
-The `ImageServer` manages loading of **raw image** 2D planes from image volumes and timeseries across a variety of formats. Lazy loading is on by default but can be toggled off to enable loading of entire 3D volumes at a given timepoint. This data is then passed off to the compute engine, `SegmentationEngine`, which will perform the selected preprocessing options to produce an **auxiliary image**. A list of available options which can be toggled in the GUI is shown below.
+The `ImageServer` manages loading of **raw image** 2D planes from image volumes and timeseries across a variety of formats. Lazy loading is on by default but can be toggled off to enable loading of entire 3D volumes at a given timepoint. This data is then passed off to the compute engine, `SegmentationEngine`, which will perform the selected preprocessing options to produce an **auxiliary image**. A list of available options which can be toggled in the GUI is shown below. Here we show a *C. elegans* embryo images on our diSPIM system. This image was preprocessed with the denoising option toggled on.
 ![Preprocessing Data](md_images/Preprocessing.png)
 
-The **auxiliary image** is then passed through the parametric algorithm in the `SegmentationEngine` to produce a result in one of the three acceptable [formats](#gui-result-types). The **raw image** or **auxiliary image** can be viewed with a user-selected colormap in the GUI’s main window with the computed results in a user-selected color overlaid atop. Although there are three sliders that correspond to three parameters, some algorithms may have more than three functions or steps in the parametric pipeline. One such case is shown below in the Pipeline Visualization Tool.
+The **auxiliary image** is then passed through the parametric algorithm in the `SegmentationEngine` to produce a result in one of the three acceptable [formats](#gui-result-types). The **raw image** or **auxiliary image** can be viewed with a user-selected colormap in the GUI’s main window with the computed results in a user-selected color overlaid atop. Although there are three sliders that correspond to three different parameters, some algorithms may have more than three functions or steps in the parametric pipeline while still only using three parameters at most. One such case is shown below in the [Pipeline Visualization Tool](#pipeline-visualization-tool).
 
 ![Pipeline Visualization](md_images/Visualization.png)
 

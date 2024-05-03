@@ -56,12 +56,10 @@ function P = SetPointsCoordinateSys(Tbl, xypxsz, zspacing, ispixelunits)
 
     % Arranges coordinates in columns so each column is a coord dimension
     P = [X Y];
-    
     if hasZslices
         P = [P Z];
     end
-
     if hasTpoints
-        P = [P T];
+        P = 
     end
 end

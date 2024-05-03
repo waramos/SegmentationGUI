@@ -620,7 +620,7 @@ classdef ImageServer < handle
 
             if obj.dim4 > 1
                 prompts{end+1}   = 'Stack/Timepoint:';
-                def_inpts{end+1} = num2str(obj.dim4idx);
+                def_inpts{end+1} = num2str(obj.dim4);
                 tflag            = true;
             else
                 tflag            = false;
@@ -770,7 +770,7 @@ classdef ImageServer < handle
             % been specified prior to calling this function
             if nargin < 2
                 s = [obj.filefolder filesep obj.filename obj.fileext];
-            elseif ~isa(obj.Source, 'matlab.io.datastore.ImageDatastore') && obj.fidx ~= 1
+            else
                 % Memory check with 500 MB threshold allowed
                 obj.MemoryCheck(s, 5e8, obj.lazyloading)
             end

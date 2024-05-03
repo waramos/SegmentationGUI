@@ -34,28 +34,28 @@ function Plugin = Plugin_DetectBlobCentroids
     % Layer 1
     Plugin.Layers(1).Name     = 'Gaussian Filter 1';
     Plugin.Layers(1).In       = [1 0 0];
-    Plugin.Layers(1).DataName = 'mask';
+    Plugin.Layers(1).DataName = 'Filtered Image';
     Plugin.Layers(1).Process  = 'Smooths image';
     Plugin.Layers(1).Forward  = @(d, p) imgaussfilt(medfilt2(d{1}), p{1}, 'Padding','symmetric');
 
     % Layer 2 - mask refinement layer
     Plugin.Layers(2).Name     = 'Gaussian Filter 2';
     Plugin.Layers(2).In       = [0 1 0];
-    Plugin.Layers(2).DataName = 'refined-mask';
+    Plugin.Layers(2).DataName = "Filtered Images' Difference";
     Plugin.Layers(2).Process  = 'Difference of Gaussian';
     Plugin.Layers(2).Forward  = @(d, p) d{2} - imgaussfilt(medfilt2(d{1}), p{2}, 'Padding','symmetric');
 
     % Layer 3 - contour computation layer (alphashapes)
     Plugin.Layers(3).Name     = 'Threshold';
     Plugin.Layers(3).In       = [0 0 1];
-    Plugin.Layers(3).DataName = 'mask';
+    Plugin.Layers(3).DataName = 'Mask';
     Plugin.Layers(3).Process  = 'Threshold';
     Plugin.Layers(3).Forward  = @(d, p) SimplyThreshold(d{3}, p{3});
 
     % Layer 4 - contour computation layer (alphashapes)
     Plugin.Layers(4).Name     = 'Blob Centroids';
     Plugin.Layers(4).In       = [0 0 0];
-    Plugin.Layers(4).DataName = 'centroids';
+    Plugin.Layers(4).DataName = 'centroids point cloud';
     Plugin.Layers(4).Process  = 'Find Centroids';
     Plugin.Layers(4).Forward  = @(d, p) GetCentroids(d{4});
 

@@ -23,9 +23,9 @@ function Plugin = Plugin_DetectBlobCentroids
     Plugin.controls(3).Name   = 'Threshold';
     Plugin.controls(3).Symbol = '$\epsilon';
     Plugin.controls(3).Units  = '';
-    Plugin.controls(3).Value  = 10;
+    Plugin.controls(3).Value  = 100;
     Plugin.controls(3).Min    = 0;
-    Plugin.controls(3).Max    = 100;
+    Plugin.controls(3).Max    = (2^16)-1;
 
     % The auto estimation of parameter values
     Plugin.AutoEstimate       = @(I) AutoThresholdEstimate(I);
@@ -57,22 +57,30 @@ function Plugin = Plugin_DetectBlobCentroids
     Plugin.Layers(4).In       = [0 0 0];
     Plugin.Layers(4).DataName = 'centroids point cloud';
     Plugin.Layers(4).Process  = 'Find Centroids';
-    Plugin.Layers(4).Forward  = @(d, p) GetCentroids(d{4});
+    Plugin.Layers(4).Forward  = @(d, p) WatersheddedCentroids(d{4});
 
 
     function I = SimplyThreshold(I, t)
-        % Normalizing threshold as % of range
-        [mn, mx] = bounds(I(:));
-        t        = (t/100)*(mx-mn);
         % apply threshold
-        I        = (I-mn) > t;
+        I = I > t;
+
         % morph open - eliminates small cc
-        I        = imopen(I, [0 1 0; 1 1 1; 0 1 0]);
+        I = imopen(I, [0 1 0; 1 1 1; 0 1 0]);
     end
 
-    function P = GetCentroids(I, ~)
+
+    function P = WatersheddedCentroids(Mask, ~)
+        % Watershedding
+        % DTrans   = -bwdist(Mask);
+        % mask     = imextendedmin(DTrans, 0);
+        % DTrans   = imimposemin(DTrans,mask);
+        % I        = watershed(DTrans, 8);
+        % I        = I>0;
+        % I(~Mask) = 0;
+        % Mask     = I;
+
         % centroid points from connected components in mask
-        rp       = regionprops(I, 'Centroid');
+        rp       = regionprops(Mask, 'Centroid');
         P        = cat(1, rp.Centroid);
     end
 end

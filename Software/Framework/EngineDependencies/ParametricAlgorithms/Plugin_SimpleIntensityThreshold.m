@@ -5,9 +5,9 @@ function Plugin = Plugin_SimpleIntensityThreshold
 
     % Parameter 1
     Plugin.controls(1).Name   = 'Threshold';
-    Plugin.controls(1).Value  = 20;
+    Plugin.controls(1).Value  = 100;
     Plugin.controls(1).Min    = 0;
-    Plugin.controls(1).Max    = 100;
+    Plugin.controls(1).Max    = (2^16)-1;
 
     % Parameter 2
     Plugin.controls(2).Name   = 'Radius';
@@ -27,11 +27,21 @@ function Plugin = Plugin_SimpleIntensityThreshold
     % Layer struct to feed forward network
     % Thresholds image
     Plugin.Layers(1).In       = [1 0 0];
-    Plugin.Layers(1).Forward  = @(d, p) ThresholdImage(d{1}, p{1});
+    Plugin.Layers(1).Process  = 'Thresholds image';
+    Plugin.Layers(1).Forward  = @(d, p) HardThreshold(d{1}, p{1});
     % Refines the mask
     Plugin.Layers(2).In       = [0 1 0];
+    Plugin.Layers(2).Process  = 'Smooths Mask';
     Plugin.Layers(2).Forward  = @(d, p) RefineMask(d{2}, p{2});
     % Converts a mask to an alpha shape
     Plugin.Layers(3).In       = [0 0 1];
+    Plugin.Layers(3).Process  = 'Computes Alpha Shape';
     Plugin.Layers(3).Forward  = @(d, p) Mask2Poly(d{3}, p{3});  
+end
+
+
+
+function Mask = HardThreshold(I, threshold)
+    I    = medfilt2(I, [3 3], 'symmetric');
+    Mask = I>threshold;
 end

@@ -22,6 +22,7 @@ function dimvec = GetBFSize(bfreaderObj, dimorder)
 %
 % Author: William A. Ramos, Kumar Lab, @ MBL, Woods Hole
 % Date: April 10, 2024
+% Last Update: May 24, 2024
 
     % dimension order
     if nargin < 2
@@ -58,7 +59,7 @@ function dimvec = GetBFSize(bfreaderObj, dimorder)
     dimvec = ones(1, 5);
     for i = 1:5
         idx       = d_idx(i, 1):d_idx(i, 2);
-        dsz       = d(idx);
+        dsz       = mdata(idx);
         e_idx     = regexp(dsz, '= ');
         dsz       = dsz(e_idx+1:end);
         dimvec(i) = str2double(dsz);

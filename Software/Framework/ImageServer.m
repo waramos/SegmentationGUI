@@ -24,6 +24,9 @@ classdef ImageServer < handle
         variable                   % Variable name assigned to when server is a matfile object
         fidx                       % If ImServer is an imagedatastore or folder path, this will refer to the index of the currently loaded image
 
+        % Bioformats
+        BFReader                   % Bioformats reader object
+
         % Options
         lazyloading    = true      % Loads portions of data on the fly for memory efficiency at cost of speed. Accounts for systems with less RAM
     end
@@ -89,8 +92,11 @@ classdef ImageServer < handle
         % properties of the class get updated without overwriting the
         % source... downside is that a reader object might need to get
         % created each time you index data.
+                    % 
                     % '*.czi; *.lms; *.lif; *.ome; *.ome.tiff; *.ome.tif; *.nef; *.nd2; *.ics.; *.ids', ...
                     % 'Commercial/Bio Formats (*.czi, *.lms, *.lif, *.ome, *.ome.tiff, *.ome.tif, *.nef, *.nd2, *.ics., *.ids)'};
+
+
         % Could consider additional formats from:
         % https://bio-formats.readthedocs.io/en/v7.2.0/formats/dataset-table.html
         % Keeping the bioformats use limited...
@@ -104,6 +110,7 @@ classdef ImageServer < handle
 
 
     properties (Dependent)
+        fullFID                    % returns the full file ID (filepath)
         mrowscrop                  % queries y dimension size based on the crop coordinates
         ncolscrop                  % queries x dimension size based on the crop coordinates
         sizes                      % queries data source dimensionality/size. Dimension sizes will depend on the source type - will return a vector when queried
@@ -121,9 +128,20 @@ classdef ImageServer < handle
     methods(Access = public)
         %% Initialization and Settings
         function obj = ImageServer(fid)
+            
             % Constructor 
             if nargin == 1
                 obj.LoadImage(fid)
+            end
+
+            % Check to see that user has bioformats
+            if obj.UserHasBF
+                % Add the BF reader obj
+                obj.BFReader = bfGetReader;
+
+                % Appending the BF formats
+                bfformats    = bfGetFileExtensions;
+                obj.filefilt = vertcat(bfformats(1,:), obj.filefilt, bfformats(2:end,:));
             end
         end
 
@@ -430,30 +448,45 @@ classdef ImageServer < handle
             obj.GUIFocus
 
             % file = 0 when user exits, hence a numeric check
-            if ~isnumeric(file)
-                % Resets the indices upon a successful selection
-                obj.ResetIndices
+            if isnumeric(file)
+                return
 
-                % Clears ROI information to enable a fresh load
-                obj.mrows = [];
-                obj.ncols = [];
+            elseif ischar(file)
+                % Forces a size check
+                obj.Refresh2D
 
-                if ischar(file)
-                    % Single file selection
-                    fpath = fullfile(folder, file);
-                    obj.LoadFromString(fpath)
+                % Single file selection
+                fpath = fullfile(folder, file);
+                obj.LoadFromString(fpath)
 
-                elseif iscell(file)
-                    % Multi file selection - expects same format
-                    files        = cellfun(@(x) fullfile(folder, x), file, 'UniformOutput', false);
-                    obj.Source   = imageDatastore(files, 'ReadFcn', @obj.ReadFromMultipleFiles);
-                    obj.numfiles = numel(obj.Source.Files);
+            elseif iscell(file)
+                % Forces a size check
+                obj.Refresh2D
 
-                    % Load in the first file from the datastore
-                    obj.fidx = 1;
+                % Multi file selection - expects same format
+                files        = cellfun(@(x) fullfile(folder, x), file, 'UniformOutput', false);
+                obj.Source   = imageDatastore(files, 'ReadFcn', @obj.ReadFromMultipleFiles);
+                obj.numfiles = numel(obj.Source.Files);
 
-                end
+                % Load in the first file from the datastore
+                obj.fidx     = 1;
+                obj.Read
+
             end
+        end
+
+
+        function Refresh2D(obj)
+            % REFRESH2D clears 2D information which forces the class to
+            % then get size information as a result of new data being
+            % loaded in.
+
+            % Resets the indices upon a successful selection
+            obj.ResetIndices
+
+            % Clears ROI information to enable a fresh load
+            obj.mrows = [];
+            obj.ncols = [];
         end
 
 
@@ -770,7 +803,7 @@ classdef ImageServer < handle
             % been specified prior to calling this function
             if nargin < 2
                 s = [obj.filefolder filesep obj.filename obj.fileext];
-            elseif ~isa(obj.Source, 'matlab.io.datastore.ImageDatastore') && obj.fidx ~= 1
+            elseif (~isa(obj.Source, 'matlab.io.datastore.ImageDatastore') && obj.fidx ~= 1) || ~obj.dataloaded 
                 % Memory check with 500 MB threshold allowed
                 obj.MemoryCheck(s, 5e8, obj.lazyloading)
             end
@@ -846,13 +879,15 @@ classdef ImageServer < handle
                         obj.ReadFromVideoFile
                     end
 
-                % case {'.czi', '.lms', '.lif', '.ome', '.ome.tiff', '.ome.tif', '.nef', '.nd2', '.ics.', '.ids'}
-                %     % bioformats
-                %     if newfile
-                %         % Load BF
-                %     else
-                %         % ReadBF
-                %     end
+                case {'.czi', '.lms', '.lif', '.ome', '.ome.tiff', '.ome.tif', '.nef', '.nd2', '.ics.', '.ids'}
+                    % bioformats
+                    if newfile
+                        % Load BF
+                        obj.LoadFromBF(s)
+                    else
+                        % ReadBF
+                        obj.ReadFromBF
+                    end
             end
 
             % Ensures image output when class method is called from
@@ -966,7 +1001,7 @@ classdef ImageServer < handle
 
             % Setting up the source and getting dimension lengths
             obj.Source  = bfGetReader(s);
-            sz = GetBFSize(obj.Source, 'yxztc');
+            sz          = GetBFSize(obj.Source, 'yxztc');
             obj.SetSize(sz)
 
             % Resets the ROI to grab full frame
@@ -1197,8 +1232,16 @@ classdef ImageServer < handle
 
             % External lazy loading function that converts high dimensional
             % indices to plane indices for the BF reader
-            I         = LoadFromBioFormats(obj.Source, dimvec);
-            obj.Slice = I(idx, jdx);
+            % Stack read when lazy loading off
+            if ~obj.lazyloading || (obj.numslices == 3)
+                I = LoadFromBioFormatsAsVol(obj.fullFID);
+                obj.Stack = I;
+                obj.Slice = I(idx, jdx, dimvec(1), dimvec(2), dimvec(3));
+                obj.Slice = squeeze(obj.Slice);
+            else
+                I         = LoadFromBioFormats(obj.Source, dimvec);
+                obj.Slice = I(idx, jdx);
+            end
         end
 
 
@@ -1267,7 +1310,42 @@ classdef ImageServer < handle
         % Will perform checks or minor computations independent of class
         % props. The behavior of the methods below will depend on external 
         % factors.
-        function GUIFocus()
+
+        function bfavailable = UserHasBF
+            % USERHASBF will check to see that the user has important
+            % bioformats functions needed to properly load in data with
+            % both lazy loading and eager loading capabilities.
+
+            bfFiles      = {'bfGetFileExtensions.m', 'bfGetPlane.m',...
+                            'bfGetPlaneAtZCT.m', 'bfopen.m', ...
+                            'bfOpen3DVolume.m'};
+            bfavailable  = cellfun(@(c) exist(c, 'file'), bfFiles);
+            bfavailable  = bfavailable == 2;
+            missingfiles = bfFiles(~bfavailable);
+            bfavailable  = all(bfavailable);
+
+            
+
+            % Warning when not all bioformats is available
+            if ~bfavailable
+                % Appending the names of missing files needed to use BF
+                bfmsg = ['Bioformats loading may not operate as '...
+                         'intended. User is missing the following' ...
+                         ' files:'];
+                for fname = missingfiles
+                    bfmsg = [bfmsg newline fname{:}];
+                end
+
+                % Bioformats 
+                bfmsg = [bfmsg newline ...
+                         'For proper installation of OME Bioformats, ' ...
+                         'visit: ' 
+                         'https://docs.openmicroscopy.org/bio-formats/5.7.1/users/matlab/index.html'];
+                warning(bfmsg)
+            end
+        end
+
+        function GUIFocus
             % GUIFOCUS will focus a GUI window in case it was sent to the
             % back by the launching of a prompt window
             guihandle = gcbf;
@@ -1413,6 +1491,17 @@ classdef ImageServer < handle
     
     methods
         %% Dependent Property Get Functions
+        function fid = get.fullFID(obj)
+            % get.fullFID returns the full filepath to the data that is
+            % loaded in
+            fname = [obj.filename obj.fileext];
+            if isempty(fname)
+                fid = [];
+            else
+                fid   = fullfile(obj.filefolder, fname);
+            end
+        end
+
         % Size related
         function sz = get.sizes(obj)
             % get.size will get all dimensions for the source data loaded
@@ -1478,21 +1567,21 @@ classdef ImageServer < handle
         function flag = get.dataloaded(obj)
             % get.dataloaded will check to see if the server has data
             % loaded up
-            flag = ~isempty(obj.Slice);
+            flag = ~isempty(obj.Slice) && ~isempty(obj.Source);
         end
 
 
         function flag = get.isstacknavigable(obj)
             % get.isstacknavigable will check if user can move through the
             % third dimension of the data source
-            flag = obj.numslices > 1;
+            flag = ~isempty(obj.numslices) && (obj.numslices > 1);
         end
 
 
         function flag = get.istimenavigable(obj)
             % get.istimenavigable will check if user can move through the
             % fourth dimension of the data source
-            flag = obj.dim4 > 1;
+            flag = ~isempty(obj.dim4) && (obj.dim4 > 1);
         end
 
 

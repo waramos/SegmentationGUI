@@ -23,13 +23,13 @@ function I = LoadFromBioFormats(bffile, dimvec)
     if isstring(bffile) || ischar(bffile)
         fid     = bffile;
         reader  = bfGetReader(fid);
-    elseif isa(bffile, '')
+    elseif isa(bffile, 'loci.formats.ChannelSeparator')
         reader = bffile;
     end
 
     % Dimension vector for Z, Color, and Time (z, c, t)
     dvec       = ones(1, 3);
-    nd         = ndims(dimvec);
+    nd         = numel(dimvec);
     dvec(1:nd) = dimvec;
     z          = dvec(1);
     c          = dvec(2);

@@ -619,18 +619,9 @@ classdef ImageServer < handle
                     % Image acquisition device source
                     obj.ReadFromImAq
 
-                % Might NOT need to reconsider the need for the case below when
-                % multiple files are selected, since that by default would
-                % call the LoadFromMultiple...LoadFromString... the
-                % LoadFromString case would just need its own way to read
-                % the BF that would involve creating a reader each time but
-                % when it's a single file, the user can easily just work
-                % with a bf reader object as the source. this should work
-                % smoothly.... will fix within the coming week or so
-                % case 'loci.formats.ChannelSeparator'
-                %     % Bioformats reader object
-                %     obj.ReadFromBF
-                
+                case 'loci.formats.ChannelSeparator'
+                    % Bioformats reader object
+                    obj.ReadFromBF
 
             end
         end 
@@ -880,12 +871,10 @@ classdef ImageServer < handle
                     end
 
                 case {'.czi', '.lms', '.lif', '.ome', '.ome.tiff', '.ome.tif', '.nef', '.nd2', '.ics.', '.ids'}
-                    % bioformats
+                    % bioformats compatible file extensions
                     if newfile
-                        % Load BF
                         obj.LoadFromBF(s)
                     else
-                        % ReadBF
                         obj.ReadFromBF
                     end
             end
@@ -1298,9 +1287,6 @@ classdef ImageServer < handle
                 I = obj.Slice;
             end
         end
-
-
-        
     end
 
 

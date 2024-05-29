@@ -208,7 +208,7 @@ classdef ExportModule < handle
 
         function R = GetPoints(obj)
             % GETPOINTS will reorganize the computed results into an array
-            % that represents point coordinates. This will work for 
+            % that represents point coordinates.
             R        = obj.Results;
             [r, c]   = find(~cellfun(@isempty, obj.Results));
             nresults = numel(r);
@@ -241,7 +241,24 @@ classdef ExportModule < handle
         end
 
 
+        function pointsonly = CheckForPoints(obj)
+            % Check that data is only composed of point detections
+            for i = 1:numel(obj.Results)
+                pointsonly = any(strcmp(obj.CheckResultType(obj.Results{i}), {'pointcloud', 'contour'}));
+                if ~pointsonly
+                    return
+                end
+            end
+        end
+
+
         function T = PointsAsTable(obj)
+            % Checks that there are only points in the results
+            if ~obj.CheckForPoints
+                T = [];
+                return
+            end
+
             % Points and the variable names
             P        = obj.GetPoints;
             varnames = {'X', 'Y'};
@@ -770,6 +787,11 @@ classdef ExportModule < handle
                 return
             end
 
+            % UI Progress update
+            if ~isempty(obj.Progdlg)
+                obj.Progdlg.Message = 'Writing output file...';
+            end
+
             % Savings results and settings
             switch obj.outputext
                 case '.mat'
@@ -805,9 +827,11 @@ classdef ExportModule < handle
             if strcmp(rtype, 'pointcloud')
                 Regionprops = [];
                 return
+
             elseif strcmp(rtype, 'contour')
                 sz          = [obj.mrows obj.ncols];
                 Resultsdata = obj.Contour2Mask(Resultsdata, sz);
+
             end
 
             % Computes the requested region properties
@@ -839,6 +863,7 @@ classdef ExportModule < handle
                 clear Regionprops
                 Regionprops.BoundingBox = [];
                 Regionprops.AspectRatio = [];
+                
             end
 
             % Bounding box removed if user did not request it despite 
@@ -930,12 +955,12 @@ classdef ExportModule < handle
             SegmentationResults = obj.Allinfo;
 
             % Points
-            ResultsTable = obj.PointsAsTable;
+            PointDetections = obj.PointsAsTable;
 
             if exist(fid, 'file') == 2
-                save(fid, 'SegmentationResults', 'ResultsTable',  '-mat', '-nocompression', '-append')
+                save(fid, 'SegmentationResults', 'PointDetections',  '-mat', '-nocompression', '-append')
             else
-                save(fid, 'SegmentationResults', 'ResultsTable',  '-mat', '-v7.3', '-nocompression')
+                save(fid, 'SegmentationResults', 'PointDetections',  '-mat', '-v7.3', '-nocompression')
             end
         end
 
@@ -1004,18 +1029,25 @@ classdef ExportModule < handle
                 return
             end
 
-            % Getting points out as table to write to .csv file
-            T = obj.PointsAsTable;
-
-            % Writing the results in separate .csv file
-            [fp, fn, fe] = fileparts(fid);
-            fid2         = [fp filesep fn 'Results' fe];
-            writetable(T, fid2, 'FileType','text')
-
             % Writes the settings
             Seginfo      = rmfield(obj.Allinfo.SegmentationInfo, {'Results', 'RegionProps'});
             T            = struct2table(Seginfo);
             writetable(T, fid, 'FileType','text')
+
+            % Getting points out as table to write to .csv file
+            T = obj.PointsAsTable;
+            if isempty(T)
+                warning(['No point detections written. Ensure points' ...
+                    ' were detected and that all computed results were' ...
+                    ' of the same type (points or contour curves).'])
+
+            else
+                % Writing the results in separate .csv file
+                [fp, fn, fe] = fileparts(fid);
+                fid2         = [fp filesep fn 'Results' fe];
+                writetable(T, fid2, 'FileType','text')
+
+            end
         end
 
 
@@ -1048,6 +1080,7 @@ classdef ExportModule < handle
                        ' .mat, .json, or .xml'];
                 warning(msg)
                 return
+
             end
             
             % Settings Worksheet: Writing the settings
@@ -1057,7 +1090,15 @@ classdef ExportModule < handle
 
             % Results Worksheet: Writing the points as a table
             T = obj.PointsAsTable;
-            writetable(T, fid, 'FileType','spreadsheet', 'Sheet', 'Results')
+            if isempty(T)
+                warning(['No point detections written. Ensure points' ...
+                    ' were detected and that all computed results were' ...
+                    ' of the same type (points or contour curves).'])
+
+            else
+                writetable(T, fid, 'FileType','spreadsheet', 'Sheet', 'Results')
+
+            end
 
             % If no properties are requested, return
             if isempty(obj.Requestedprops)
@@ -1073,6 +1114,7 @@ classdef ExportModule < handle
                 RP        = obj.Allinfo.SegmentationInfo(i).RegionProps;
                 T         = struct2table(RP);
                 writetable(T, fid, 'FileType','spreadsheet', 'Sheet', sheetname)
+
             end
         end
 

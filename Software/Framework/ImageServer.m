@@ -1425,26 +1425,57 @@ classdef ImageServer < handle
                 finfo   = imfinfo(fid);
                 zslices = numel(finfo);
                 factor  = 1/zslices;
+                
             elseif lazyloadflag && isvid
                 vf      = VideoReader(fid);
                 tpts    = vf.NumFrames;
                 factor  = 1/tpts;
+
             else
                 factor  = 1;
+
             end
 
             % System's available memory
             if ispc
                 [~, m]  = memory;
                 freemem = m.PhysicalMemory.Available;
-            elseif isunix
+
+            elseif isunix && ~ismac
                 [~,w]   = unix('free | grep Mem');
                 stats   = str2double(regexp(w, '[0-9]*', 'match'));
                 freemem = (stats(3)+stats(end));
+
             elseif ismac
-                freemem = 4*1e9;
+                % Gets the memory usage from Mac's vmstat command
+                [~, c] = unix('top -l 1 | grep -E "^Phys"');
+                idx    = regexp(c, 'unused');
+                idxs   = regexp(c, ',');
+
+                % Finds the number of bytes available
+                nidx     = idxs(end)+2:idx-2;
+                c        = c(nidx);
+
+                % Scale/Magnitude of number of bytes
+                isGB     = contains(c, 'G');
+                isMB     = contains(c, 'M');
+                isTB     = contains(c, 'T');
+                midx     = [isMB isGB isTB];
+                memscale = [1e6 1e9 1e12];
+                memscale = memscale(midx);
+                
+                % Simple print - not needed 
+                % mLabels  = {'MB', 'GB', 'TB'};
+                % mlabel   = mLabels(midx);
+                % msg      = ['Memory Available: ' c(1:end-1) ' ' mlabel{:}];
+                % disp(msg)
+
+                freemem = str2double(c(1:end-1));
+                freemem = freemem*memscale;
+
             else
                 error('Platform not supported.')
+                
             end
 
             % File size in bytes

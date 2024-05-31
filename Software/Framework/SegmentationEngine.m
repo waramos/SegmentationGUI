@@ -1174,6 +1174,17 @@ classdef SegmentationEngine < handle
             obj.Reset(true)
         end
 
+        function InitializeEVPlotLinkage(obj)
+            % INITIALIZEEVPLOTLINKAGE will initialize the linking of
+            % various properties between the plots inside the engine
+            % visualizer to ensure that as the user is moving around in one
+            % image, the other views also update in response.
+            linkprop(obj.EngineVisualizer.Axes, ...
+                {'Clipping', 'XLimMode', ...
+                 'YLimMode', 'XLimitMethod', ...
+                 'YLimitMethod', 'YLim', 'XLim'});
+        end
+
 
 
         function PlotPluginSteps(obj, cmap, linecolor, linewidth, darkMode)
@@ -1331,15 +1342,6 @@ classdef SegmentationEngine < handle
 
                     end
 
-                    % Axes limits, color, deletes axes outline
-                    axis(ax, 'image')
-                    ax.Color           = bckgrnd;
-                    ax.XLim            = xL;
-                    ax.YLim            = yL;
-                    ax.XColor          = 'none';
-                    ax.YColor          = 'none';
-                    ax.Toolbar.Visible = 'off';
-
                 else
                     % Raw image and points for the final subplot
                     obj.EngineVisualizer.Plots(i) = imagesc(ax, Im);
@@ -1368,7 +1370,11 @@ classdef SegmentationEngine < handle
                     % Computational layer outputs
                     name = ['Layer ' num2str(i-1) ' Output: ' DataNames{i}];
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
-                    pmsg = obj.Plugin.Layers(i-1).Process;
+                    try
+                        pmsg = obj.Plugin.Layers(i-1).Process;
+                    catch
+                        pmsg = '';
+                    end
                     ParameterLabel(i-1)
 
                 else
@@ -1396,17 +1402,35 @@ classdef SegmentationEngine < handle
                     % Title for figure
                     name = 'Segmentation Result';
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
-                    pmsg = obj.Plugin.Layers(i-1).Process;
+                    try
+                        pmsg = obj.Plugin.Layers(i-1).Process;
+                    catch
+                        pmsg = '';
+                    end
                     ParameterLabel(i-1)
 
                 end
+
+                % Axes limits, color, deletes axes outline
+                axis(ax, 'equal')
+                ax.Color           = bckgrnd;
+                ax.XLim            = xL;
+                ax.YLim            = yL;
+                ax.XColor          = 'none';
+                ax.YColor          = 'none';
+                ax.Toolbar.Visible = 'off';
+                ax.Clipping        = 'on';
         
                 % Removing tick marks
                 ax.XTick = [];
                 ax.YTick = [];
 
-                % Setting up with the same look as the GUI
+                % Font is same as in the GUI for consistent look
                 ax.FontName = FName;
+
+                % Ensuring the axes all link
+                obj.InitializeEVPlotLinkage
+
             end
             
             % Title with proper spacing and method information
@@ -1465,7 +1489,7 @@ classdef SegmentationEngine < handle
                         % only upon a size change (i.e. crop, diff image,
                         % etc. is loaded)
                         if diffSz
-                            axis(obj.EngineVisualizer.Axes(i), 'image')
+                            axis(obj.EngineVisualizer.Axes(i), 'equal')
                         end
                     else
                         if obj.isRGB

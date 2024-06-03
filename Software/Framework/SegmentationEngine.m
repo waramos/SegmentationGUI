@@ -1180,9 +1180,10 @@ classdef SegmentationEngine < handle
             % visualizer to ensure that as the user is moving around in one
             % image, the other views also update in response.
             linkprop(obj.EngineVisualizer.Axes, ...
-                {'Clipping', 'XLimMode', ...
-                 'YLimMode', 'XLimitMethod', ...
-                 'YLimitMethod', 'YLim', 'XLim'});
+                {'Clipping', ...
+                'XLimMode', 'YLimMode', ...
+                'XLimitMethod', 'YLimitMethod', ...
+                'XLim', 'YLim'});
         end
 
 
@@ -1427,15 +1428,14 @@ classdef SegmentationEngine < handle
 
                 % Font is same as in the GUI for consistent look
                 ax.FontName = FName;
-
-                % Ensuring the axes all link
-                obj.InitializeEVPlotLinkage
-
             end
             
             % Title with proper spacing and method information
             Title_msg = ['Engine Processing Steps - Segmentation Method: ' obj.method newline];
             title(t, Title_msg, 'FontSize', 20, 'FontName', FName, 'Color', FColor)
+
+            % Ensuring the axes all link
+            obj.InitializeEVPlotLinkage
         
             function ParameterLabel(i)
                 % Getting parameter index values for a layer
@@ -1517,6 +1517,10 @@ classdef SegmentationEngine < handle
                     obj.EngineVisualizer.Contour.XData = [];
                     obj.EngineVisualizer.Contour.YData = [];
                 end
+
+                % Ensuring the axes all link
+                obj.InitializeEVPlotLinkage
+
             else
                 obj.EngineVisualizer = [];
             end

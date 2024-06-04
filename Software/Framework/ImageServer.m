@@ -879,6 +879,10 @@ classdef ImageServer < handle
                     end
             end
 
+            if ~obj.lazyloading
+                obj.Source = obj.Stack;
+            end
+
             % Ensures image output when class method is called from
             % imds source - when mult. files loaded up
             if nout == 1

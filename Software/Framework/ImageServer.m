@@ -879,6 +879,7 @@ classdef ImageServer < handle
                     end
             end
 
+            % Forces array based loading when full stack is in
             if ~obj.lazyloading
                 obj.Source = obj.Stack;
             end

@@ -1443,16 +1443,19 @@ classdef ImageServer < handle
 
             % System's available memory
             if ispc
+                % PC (windows) uses GB
                 [~, m]  = memory;
                 freemem = m.PhysicalMemory.Available;
 
             elseif isunix && ~ismac
+                % Linux used kb
                 [~,w]   = unix('free | grep Mem');
                 stats   = str2double(regexp(w, '[0-9]*', 'match'));
-                freemem = (stats(3)+stats(end));
+                freemem = stats(end);
+                freemem = freemem*1e3;
 
             elseif ismac
-                % Gets the memory usage from Mac's vmstat command
+                % Mac uses variable memory magnitude
                 [~, c] = unix('top -l 1 | grep -E "^Phys"');
                 idx    = regexp(c, 'unused');
                 idxs   = regexp(c, ',');

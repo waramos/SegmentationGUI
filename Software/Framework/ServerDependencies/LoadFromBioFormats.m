@@ -32,8 +32,8 @@ function I = LoadFromBioFormats(bffile, dimvec)
     nd         = numel(dimvec);
     dvec(1:nd) = dimvec;
     z          = dvec(1);
-    c          = dvec(2);
-    t          = dvec(3);
+    t          = dvec(2);
+    c          = dvec(3);
     plane      = reader.getIndex(z-1, c-1, t-1) + 1;
     I          = bfGetPlane(reader, plane);
 end

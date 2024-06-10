@@ -538,8 +538,10 @@ classdef ImageServer < handle
 
 
         %% Read and Checks
-        function Read(obj, d3idx, d4idx)
-            % obj.READ(d3idx, d4idx)
+        function Read(obj, d3idx, d4idx, d5idx)
+            % obj.READ(d3idx, d4idx, d5idx)
+            % obj.READ([], d4idx, d5idx)
+            % obj.READ(d3idx, [], d5idx)
             % obj.READ([], d4idx)
             % obj.READ(d3idx)
             % obj.READ
@@ -566,6 +568,11 @@ classdef ImageServer < handle
             % None. Will update the ImageStack and ImageSlice properties of
             % the class.
 
+            if nargin < 4 || isempty(d5idx)
+                % Current channel index preserved when not requested
+                d5idx = obj.channel;
+            end
+
             if nargin < 3 || isempty(d4idx)
                 % Current stack / file index preserved when not requested
                 d4idx = obj.dim4idx;
@@ -575,6 +582,7 @@ classdef ImageServer < handle
                 % Current slice index preserved when not requested
                 d3idx = obj.slice;
             end
+            
 
             % If there is no data source, the function exits since there is
             % no data to index
@@ -585,6 +593,7 @@ classdef ImageServer < handle
             % Bound checks requested indices and sets them
             obj.SetD3Index(d3idx)
             obj.SetD4Index(d4idx)
+            obj.SetD5Index(d5idx)
 
             switch class(obj.Source)
                 case 'matlab.io.datastore.ImageDatastore'
@@ -680,7 +689,8 @@ classdef ImageServer < handle
         function SetSize(obj, sz)
             % SETSIZE will initialize all dimensions as singletons and then
             % assign the data's dimension sizes to non-singleton dimensions
-            % of the actual data.
+            % of the actual data. This assignment is always done in the
+            % order of YXZTC (3 spatial dimensions, time, and channel).
 
             % Inits dims sets the non-singleton dims
             nd            = length(sz);
@@ -703,9 +713,11 @@ classdef ImageServer < handle
             if ~isempty(obj.croprows)
                 idx = obj.croprows(1):obj.croprows(2);
                 jdx = obj.cropcols(1):obj.cropcols(2);
+
             else
                 idx = ':';
                 jdx = ':';
+
             end
         end
 
@@ -725,6 +737,14 @@ classdef ImageServer < handle
             % in a datastore.
             D4    = min(obj.dim4, D4);
             D4    = max(1, D4);
+        end
+
+
+        function D5 = CheckD5Bounds(obj, D5)
+            % CHECKD4BOUNDS will check bounds on number of channels
+            % available.
+            D5 = min(obj.channels, D5);
+            D5 = max(1, D5);
         end
 
 
@@ -756,6 +776,17 @@ classdef ImageServer < handle
             elseif isempty(obj.numframes) || obj.numframes == 1
                 obj.fidx     = D4;
             end
+        end
+
+
+        function SetD5Index(obj, D5)
+            % SETD5INDEX will set the fifth dimension index set the current
+            % channel
+            D5 = obj.CheckD5Bounds(D5);
+            if isempty(D5)
+                D5 = 1;
+            end
+            obj.channel = D5;
         end
 
 
@@ -995,7 +1026,7 @@ classdef ImageServer < handle
 
             % Setting up the source and getting dimension lengths
             obj.Source  = bfGetReader(s);
-            sz          = GetBFSize(obj.Source, 'yxztc');
+            sz          = GetBFArraySize(obj.Source, 'yxztc');
             obj.SetSize(sz)
 
             % Resets the ROI to grab full frame
@@ -1222,16 +1253,17 @@ classdef ImageServer < handle
             [idx, jdx] = obj.GetCropIndices;
 
             % Note that BF will flip channel and time
-            dimvec = [obj.slice obj.channel obj.framenum];
+            dimvec = [obj.slice obj.framenum obj.channel];
 
             % External lazy loading function that converts high dimensional
             % indices to plane indices for the BF reader
             % Stack read when lazy loading off
             if ~obj.lazyloading || (obj.numslices == 3)
-                I = LoadFromBioFormatsAsVol(obj.fullFID);
-                obj.Stack = I;
-                obj.Slice = I(idx, jdx, dimvec(1), dimvec(2), dimvec(3));
-                obj.Slice = squeeze(obj.Slice);
+                I          = LoadFromBioFormatsAsVol(obj.fullFID);
+                obj.Source = I;
+                obj.Stack  = I;
+                obj.Slice  = I(idx, jdx, dimvec(1), dimvec(2), dimvec(3));
+                obj.Slice  = squeeze(obj.Slice);
             else
                 I         = LoadFromBioFormats(obj.Source, dimvec);
                 obj.Slice = I(idx, jdx);

@@ -486,8 +486,9 @@ classdef VisualizationEngine < handle
             D = double(D);
 
             if isempty(obj.Plot)
-                % Creates the initial image plot handle 
+                % Initial image plot handle and image aspect ratio
                 obj.Plot = imagesc(obj.UIAxes2, D);
+                axis(obj.UIAxes2, 'image')
 
                 if ismask
                     % Mask has binary colormap
@@ -522,7 +523,6 @@ classdef VisualizationEngine < handle
 
             % Prevents glitching
             obj.Plot.AlphaData = obj.opacity*alphaMap;
-            axis(obj.UIAxes2, 'image')
 
             % Places major / minor axes over the other plots if desired
             if obj.eigs

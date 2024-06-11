@@ -18,7 +18,7 @@ function I = LoadFromBioFormats(bffile, dimvec)
 %
 % Author: William A. Ramos, Kumar Lab @ MBL, Woods Hole
 % Date: April 10, 2024
-% Last Update: May 24, 2024
+% Last Update: June 11, 2024
 
     if isstring(bffile) || ischar(bffile)
         fid     = bffile;

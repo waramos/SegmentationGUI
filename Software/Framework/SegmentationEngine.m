@@ -336,7 +336,7 @@ classdef SegmentationEngine < handle
 
             % Assignment and recomputation flag
             obj.Plugin.controls(paramidx).(field) = value;
-            obj.FindComputeStart(paramidx)
+            obj.SetComputeStart(paramidx)
             obj.CheckParamBounds
         end
 
@@ -346,6 +346,11 @@ classdef SegmentationEngine < handle
             % value can only be set to layers that produce output of the
             % following datatypes: logical, integer, or double with a size
             % of Nx2
+
+            % No change has occured - exit
+            if stopstep == obj.laststep
+                return
+            end
 
             % initial bound check
             stopstep = min(stopstep, obj.nlayers);
@@ -371,11 +376,39 @@ classdef SegmentationEngine < handle
             [~, idx]     = min(abs(Validsteps-stopstep));
             chosenstep   = Validsteps(idx);
             obj.laststep = chosenstep;
+
+            % Clearing old results
+            % obj.ClearOldResults
         end
 
 
-        function FindComputeStart(obj, paramN)
-            % FINDCOMPUTESTEP will find the first layer whose input source
+        function ClearOldResults(obj)
+            % CLEAROLDRESULTS will clear the results from the outputs cell
+            % array to ensure that old results do not accidentally show up
+            % or get visualized. This ensures a refresh of new computations
+            % once the user moves the laststep / stop step to be later in
+            % the pipeline rather than holding onto old results for later
+            % indices of the results array.
+
+            % Need to think about a better way of doing this...
+            % Current issue is that upon clearing the results, user cannot
+            % call SetComputeSteps for later indices since empty cells will
+            % lead to "invalid" indices that the user cannot select as
+            % output
+
+            if obj.laststep+1 > numel(obj.Outputs)
+                return
+            end
+
+            % Empty the results for later indices
+            for i = obj.laststep+2:numel(obj.Outputs)
+                obj.Outputs{i} = [];
+            end
+        end
+
+
+        function SetComputeStart(obj, paramN)
+            % SETCOMPUTESTART will find the first layer whose input source
             % is the parameter whose value was changed. However, if the
             % stage was last set to a lower value because a new image was
             % loaded into the engine, this will force the engine to start
@@ -383,6 +416,29 @@ classdef SegmentationEngine < handle
             % stage is set to Inf, so the flow index value will always be
             % less then obj.stage under normal circumstances.
             obj.stage = min(obj.Plugin.flow(paramN), obj.stage);
+        end
+
+
+        function stepidx = FindComputeStep(obj, idx)
+            % FINDCOMPUTESTEP will find the first layer whose input source
+            % is the parameter index passed into the function. It also
+            % checks to see if this value is 
+            try
+                stepidx = obj.Plugin.flow(idx);
+            catch
+                error('Index is greater than number of available pipeline steps.')
+            end
+        end
+
+        function paststop = StepPastStop(obj, idx)
+            % STEPPASTSTOP will determine if a parameter index corresponds
+            % to a pipeline step that is beyond the pipeline stopping index
+            % (last step) which is the last step where computation will
+            % take place. This is always less than or equal to the number
+            % of layers since the user can always modify where they want to
+            % stop at in the pipeline.
+            stepidx  = obj.FindComputeStep(idx);
+            paststop = stepidx > obj.laststep;
         end
 
 
@@ -1315,7 +1371,7 @@ classdef SegmentationEngine < handle
             obj.EngineVisualizer.Contour = [];
         
             % Will create a subplot for each compute step
-            for i = 1:obj.nlayers+1
+            for i = 1:obj.laststep+1
                 % New subplot per each layer's data
                 ax = nexttile(t);
                 obj.EngineVisualizer.Axes(i) = ax;
@@ -1473,7 +1529,7 @@ classdef SegmentationEngine < handle
             diffSz = (ndims(OldSz) ~= ndims(NewSz)) || any(OldSz ~= NewSz);
             
             if ~isempty(obj.EngineVisualizer) && isvalid(obj.EngineVisualizer.Figure)
-                for i = 1:obj.nlayers + 1
+                for i = 1:obj.laststep + 1
 
                     if i == 1
                         % Always plots the auxiliary image first
@@ -1577,23 +1633,27 @@ classdef SegmentationEngine < handle
             end
 
             if ~isempty(obj.EngineVisualizer) && isvalid(obj.EngineVisualizer.Figure)
-                for i = 1:obj.nlayers
+                for i = 1:obj.laststep
                     ax = obj.EngineVisualizer.Axes(i);
                     colormap(ax, cmap)
-                    if size(obj.Outputs{obj.laststep}, 2) == 2
+                    if size(obj.Outputs{i}, 2) == 2
                         obj.EngineVisualizer.Plot(i).Color = linecolor;
                     end
+
                 end
-                obj.EngineVisualizer.Contour.Color       = linecolor;
-                obj.EngineVisualizer.Contour.LineWidth   = linewidth;
+
+                obj.EngineVisualizer.Contour.Color      = linecolor;
+                obj.EngineVisualizer.Contour.LineWidth  = linewidth;
                 obj.EngineVisualizer.Contour.MarkerSize = markerwidth;
+
             else
                 return
             end
 
+            % darkMode logical flag is true if dark mode desired
             fig = obj.EngineVisualizer.Figure;
             ChangeObjColor(fig, darkMode)
-            % darkMode logical flag is true if dark mode desired
+            
             function ChangeObjColor(gObj, flag)
                 ChildCheck = isprop(gObj, 'Children');
                 LabelCheck = isprop(gObj, 'XLabel');

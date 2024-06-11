@@ -11,19 +11,21 @@ classdef VisualizationEngine < handle
 % representation as an image plotted atop the primary axes with some
 % transparency but unlike the mask data, the label matrix will span the
 % colormap rather than only using a single color.
+%
+% William A. Ramos, Kumar Lab @ MBL, Woods Hole, June 2024
 
     properties
         % Access to classes held by GUI
         Server                                           % Maintains information about the image being analyzed
 
         % Axes for plot visualization
-        UIAxes                                           % Plots image
-        UIAxes2                                          % Plots computational results atop the other axes
-        opacity      (:,:) {mustBeFinite} = 0.4;         % Alphamap might change depending on what type of data is displayed
+        UIAxes                                           % Holds plot of image of interest. Could be raw or auxiliary image
+        UIAxes2                                          % Plots computational results atop the other axes to overlay atop image of interest
+        opacity      (:,:) {mustBeFinite} = 0.4;         % Alphamap for transparency of masks and label matrices
 
         % Plot handles and info
-        Image                                            % Scaled image handle to allow direct replacement of CData for efficient visualization
-        Plot                                             % Primitive line object, scatter, or scaled image handle (if mask or label image)
+        Image                                            % Image plot handle to allow direct replacement of CData for efficient visualization
+        Plot                                             % Primitive line object (contour / pointcloud) or image plot handle (mask or label matrix)
         Plotoob                                          % Out of bound points plot only exists when points present
         mrows                                            % Number of image rows
         ncols                                            % Number of image columns
@@ -586,9 +588,11 @@ classdef VisualizationEngine < handle
                 if isempty(obj.Majeig{1})
                     % Initialization
                     obj.InitEigPlot(Majmom, Minmom, c)
+
                 else
                     % Updates plots if they exist
                     obj.UpdateEigPlots(Majmom, Minmom, c)
+
                 end
 
             else
@@ -638,9 +642,11 @@ classdef VisualizationEngine < handle
                     % Clear major axes
                     obj.Majeig{i}.XData = [];
                     obj.Majeig{i}.YData = [];
+
                     % Clear minor axes
                     obj.Mineig{i}.XData = [];
                     obj.Mineig{i}.YData = [];
+
                 end
             end
         end
@@ -689,10 +695,16 @@ classdef VisualizationEngine < handle
         function InitSecondAxes(obj)
             % Initializes second axes to have masks/data plotted atop.
             obj.UIAxes2       = uiaxes(obj.UIAxes.Parent);
+            axis(obj.UIAxes2, 'equal')
             obj.UIAxes2.Color = 'none';
             obj.UIAxes2.YDir  = 'reverse';
             obj.UIAxes.YDir   = 'reverse';
-            linkprop([obj.UIAxes obj.UIAxes2], {'Position', 'InnerPosition', 'XLim', 'YLim', 'XTick', 'YTick', 'XColor', 'YColor', 'Clipping', 'ClippingStyle', 'YDir', 'XDir'});
+            linkprop([obj.UIAxes obj.UIAxes2],...
+                     {'Position', 'InnerPosition', 'XLim', 'YLim',...
+                      'XLimMode', 'YLimMode',...
+                      'XLimitMethod', 'YLimitMethod',...
+                      'XTick', 'YTick', 'XColor', 'YColor',...
+                      'Clipping', 'ClippingStyle', 'YDir', 'XDir'});
             linkaxes([obj.UIAxes obj.UIAxes2], 'xy')
             disableDefaultInteractivity(obj.UIAxes2)
             obj.UIAxes2.Toolbar.Visible = false;
@@ -834,8 +846,8 @@ classdef VisualizationEngine < handle
                                  'LineWidth', obj.linewidth);
 
             % Ensure proper axes aspect ratio
-            axis(obj.UIAxes, 'image')
-            axis(obj.UIAxes2, 'image')
+            % axis(obj.UIAxes, 'image')
+            % axis(obj.UIAxes2, 'image')
         end
 
 

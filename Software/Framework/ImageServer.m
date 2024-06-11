@@ -540,8 +540,9 @@ classdef ImageServer < handle
         %% Read and Checks
         function Read(obj, d3idx, d4idx, d5idx)
             % obj.READ(d3idx, d4idx, d5idx)
-            % obj.READ([], d4idx, d5idx)
             % obj.READ(d3idx, [], d5idx)
+            % obj.READ([], d4idx, d5idx)
+            % obj.READ(d3idx, d4idx)
             % obj.READ([], d4idx)
             % obj.READ(d3idx)
             % obj.READ

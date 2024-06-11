@@ -1371,11 +1371,11 @@ classdef SegmentationEngine < handle
                     % Computational layer outputs
                     name = ['Layer ' num2str(i-1) ' Output: ' DataNames{i}];
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
-                    try
+                    % try
                         pmsg = obj.Plugin.Layers(i-1).Process;
-                    catch
-                        pmsg = '';
-                    end
+                    % catch
+                    %     pmsg = '';
+                    % end
                     ParameterLabel(i-1)
 
                 else
@@ -1403,11 +1403,11 @@ classdef SegmentationEngine < handle
                     % Title for figure
                     name = 'Segmentation Result';
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
-                    try
+                    % try
                         pmsg = obj.Plugin.Layers(i-1).Process;
-                    catch
-                        pmsg = '';
-                    end
+                    % catch
+                    %     pmsg = '';
+                    % end
                     ParameterLabel(i-1)
 
                 end
@@ -1417,8 +1417,6 @@ classdef SegmentationEngine < handle
                 ax.Color           = bckgrnd;
                 ax.XLim            = xL;
                 ax.YLim            = yL;
-                ax.XColor          = 'none';
-                ax.YColor          = 'none';
                 ax.Toolbar.Visible = 'off';
                 ax.Clipping        = 'on';
         
@@ -1468,13 +1466,21 @@ classdef SegmentationEngine < handle
             if isempty(obj.EngineVisualizer)
                 return
             end
+
+            % Determines if image data changed
             OldSz  = size(obj.EngineVisualizer.Plots(1).CData);
             NewSz  = size(obj.Outputs{1});
             diffSz = (ndims(OldSz) ~= ndims(NewSz)) || any(OldSz ~= NewSz);
+            
             if ~isempty(obj.EngineVisualizer) && isvalid(obj.EngineVisualizer.Figure)
                 for i = 1:obj.nlayers + 1
 
-                    if (1 < i) && (i < obj.nlayers + 1)
+                    if i == 1
+                        % Always plots the auxiliary image first
+                        Img = obj.Outputs{1};
+                        obj.EngineVisualizer.Plots(i).CData = Img;
+
+                    elseif (1 < i) && (i < obj.nlayers + 1)
                         Results = obj.Outputs{i};
                         % In case data has points instead of image
                         if size(Results, 2) > 2
@@ -1492,11 +1498,15 @@ classdef SegmentationEngine < handle
                             axis(obj.EngineVisualizer.Axes(i), 'equal')
                         end
                     else
+                        % Determines whether to plot a grayscale or RGB
+                        % image
                         if obj.isRGB
                             Img = obj.RGB;
                         else
                             Img = obj.Raw;
                         end
+
+                        % Plots the 
                         try
                             obj.EngineVisualizer.Plots(i).CData = Img;
                         catch

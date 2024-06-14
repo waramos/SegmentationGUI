@@ -1402,7 +1402,6 @@ classdef SegmentationEngine < handle
                 else
                     % Raw image and points for the final subplot
                     obj.EngineVisualizer.Plots(i) = imagesc(ax, Im);
-                    axis(ax, 'image')
                     colormap(ax, cmap)
                     colorbar(ax, 'southoutside', 'Visible','off')
 
@@ -1427,11 +1426,11 @@ classdef SegmentationEngine < handle
                     % Computational layer outputs
                     name = ['Layer ' num2str(i-1) ' Output: ' DataNames{i}];
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
-                    % try
+                    try
                         pmsg = obj.Plugin.Layers(i-1).Process;
-                    % catch
-                    %     pmsg = '';
-                    % end
+                    catch
+                        pmsg = '';
+                    end
                     ParameterLabel(i-1)
 
                 else
@@ -1459,11 +1458,11 @@ classdef SegmentationEngine < handle
                     % Title for figure
                     name = 'Segmentation Result';
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
-                    % try
+                    try
                         pmsg = obj.Plugin.Layers(i-1).Process;
-                    % catch
-                    %     pmsg = '';
-                    % end
+                    catch
+                        pmsg = '';
+                    end
                     ParameterLabel(i-1)
 
                 end
@@ -1547,12 +1546,7 @@ classdef SegmentationEngine < handle
                                 obj.EngineVisualizer.Plots(i).YData = Results(:,2);
                             end
                         end
-                        % Ensures speed up of visualization and slow down
-                        % only upon a size change (i.e. crop, diff image,
-                        % etc. is loaded)
-                        if diffSz
-                            axis(obj.EngineVisualizer.Axes(i), 'equal')
-                        end
+                        
                     else
                         % Determines whether to plot a grayscale or RGB
                         % image
@@ -1571,6 +1565,11 @@ classdef SegmentationEngine < handle
                             return
                         end
                     end
+
+                    % Adjust size as needed - avoids slowdown
+                    if diffSz
+                        axis(obj.EngineVisualizer.Axes(i), 'equal')
+                    end
                 end
 
 
@@ -1585,7 +1584,7 @@ classdef SegmentationEngine < handle
                 end
 
                 % Ensuring the axes all link
-                obj.InitializeEVPlotLinkage
+                % obj.InitializeEVPlotLinkage
 
             else
                 obj.EngineVisualizer = [];
@@ -1615,8 +1614,7 @@ classdef SegmentationEngine < handle
                     linecolor   = app.Visengine.color;
                     linewidth   = app.Visengine.linewidth;
                     markerwidth = app.Visengine.markerwidth;
-
-                    darkMode  = app.DarkMode.State;
+                    darkMode    = app.DarkMode.State;
                     if isstring(cmap) || ischar(cmap)
                         cmap = feval(cmap);
                     end

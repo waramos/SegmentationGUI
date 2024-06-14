@@ -19,13 +19,11 @@ classdef ImageServer < handle
 % email: wramos@mbl.edu
 
     properties (Access = private)
-        % Image object
-        Source                     % Server determines how additional images are passed into the image loader. Can be imds, array, webcam, or imaq toolbox device
-        variable                   % Variable name assigned to when server is a matfile object
-        fidx                       % If ImServer is an imagedatastore or folder path, this will refer to the index of the currently loaded image
-
-        % Bioformats
-        BFReader                   % Bioformats reader object
+        % Image related
+        Source                     % Source determines how additional images are passed into the image server. Can be a numerical array from workspace, image datastore, a file, 
+        variable                   % When source is a matfile object, this has the variable name that holds the data
+        fidx                       % When source is an imagedata store or live folder, this refers to the file index
+        BFReader                   % Need to initialize the Bio Formats reader object to configure acceptable file formats
 
         % Options
         lazyloading    = true      % Loads portions of data on the fly for memory efficiency at cost of speed. Accounts for systems with less RAM
@@ -48,14 +46,14 @@ classdef ImageServer < handle
         ncols                      % Number of columns in image (x dim)
         numslices                  % Number of z slices in image stack
         numframes                  % Number of timepoints
-        numfiles                   % Number of files in the datastore/folder. Updates if user is imaging as new files are written
-        channels                   % Number of channels - likely to be used with bioformats / ome.tif if it were to get integrated
-        dim4idx                    % Represents data's 4th dimension. Can either be time or file index, depending on source type
+        numfiles                   % Number of files in the datastore/folder. Updates if user is imaging as new files are written (live folder source type)
+        channels                   % Number of channels - bioformats / workspace array compatible
 
-        % Dimension indexing
-        slice                      % Z slice currently loaded
-        framenum                   % Timepoint currently loaded
-        channel                    % Channel currently loaded
+        % 2D Slice Indexing
+        slice                      % Z index - D3 - slice currently loaded
+        framenum                   % T index - D4 - timepoint currently loaded
+        channel                    % C index - D5 - channel currently loaded - only compatible with bioformats and numerical arrays
+        dim4idx                    % T/F index - D4 - Represents data's 4th dimension. Can either be time or file index, depending on source type
 
         % Crop ROI
         croprows                   % crop ROI coordinates (D1 - rows) - row vector of image's row indices used for crop
@@ -78,33 +76,9 @@ classdef ImageServer < handle
                     '*.avi; *.mp4; *.mpg; *.mpeg',...
                     'Videos (*.avi, *.mp4, *.mpg, *.mpeg)'};
                     
-        % BioFormats still not fully integrated but is ~80% done - need to
-        % finish ensuring switch case statements work and determine if
-        % maintaining a single reader object is fine to be set as the
-        % source or if the source should be treated as a string (e.g. file)
-        % and then read in via the LoadFromString method in this class...
-        % Realistically, would likely be faster to leave source as a reader
-        % object but this might make things trickier to code if we have to
-        % select multiple files! - would then actually be better off
-        % setting as a folder source (cell array class) so that we can
-        % call the LoadFromMultiple method which calls LoadFromString
-        % method, which then will call LoadFromBF. This would ensure
-        % properties of the class get updated without overwriting the
-        % source... downside is that a reader object might need to get
-        % created each time you index data.
-                    % 
-                    % '*.czi; *.lms; *.lif; *.ome; *.ome.tiff; *.ome.tif; *.nef; *.nd2; *.ics.; *.ids', ...
-                    % 'Commercial/Bio Formats (*.czi, *.lms, *.lif, *.ome, *.ome.tiff, *.ome.tif, *.nef, *.nd2, *.ics., *.ids)'};
-
-
-        % Could consider additional formats from:
+        % BioFormats integration - if user has bfmatlab, the following
+        % formats are also compatible with this class:
         % https://bio-formats.readthedocs.io/en/v7.2.0/formats/dataset-table.html
-        % Keeping the bioformats use limited...
-
-        % ALSO NOTE:
-        % Need to add some sort of check to see if the users have
-        % bioformats...might not be good to package it up w my software by
-        % default but this can be a question for later.
     end
 
 
@@ -120,7 +94,7 @@ classdef ImageServer < handle
         Classmethods               % queries the class methods the user can use - returns cell array of list of publicly available class methods
         Classproperties            % queries the properties the user can use - returns cell array of list of publicly available class properties
         Datasources                % queries available options for data sources
-        dim4                       % queries either time or file index depending on which is larger and data source type
+        dim4                       % queries either time or file index depending on which is larger and data source type. Useful for bounds checking
     end
 
 
@@ -128,18 +102,21 @@ classdef ImageServer < handle
     methods(Access = public)
         %% Initialization and Settings
         function obj = ImageServer(fid)
+            % IMAGESERVER Constructor. Can take input to instatiate with
+            % data immediately loaded up.
+            %
+            % INPUTS: 
+            % fid (optional) - filepath, folder path, or numerical array.
             
-            % Constructor 
+            % Loads data according to input type
             if nargin == 1
                 obj.LoadImage(fid)
             end
 
             % Check to see that user has bioformats
             if obj.UserHasBF
-                % Add the BF reader obj
-                obj.BFReader = bfGetReader;
-
                 % Appending the BF formats
+                obj.BFReader = bfGetReader;
                 bfformats    = bfGetFileExtensions;
                 obj.filefilt = vertcat(bfformats(1,:), obj.filefilt, bfformats(2:end,:));
             end

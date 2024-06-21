@@ -1108,12 +1108,15 @@ classdef ExportModule < handle
             % Region Props Worksheet(s):
             % Region Props is a nested struct - parsed into sheets
             for i = 1:n_planes
+                try
                 z         = zslices(i);
                 t         = tframes(i);
                 sheetname = ['Z' num2str(z) '_T' num2str(t) 'RegionProperties'];
                 RP        = obj.Allinfo.SegmentationInfo(i).RegionProps;
                 T         = struct2table(RP);
                 writetable(T, fid, 'FileType','spreadsheet', 'Sheet', sheetname)
+                catch
+                end
 
             end
         end

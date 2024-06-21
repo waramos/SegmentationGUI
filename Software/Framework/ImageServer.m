@@ -836,7 +836,7 @@ classdef ImageServer < handle
 
             % Check if this is a new file being loaded
             [~, ~, fext] = fileparts(s);
-            newfile      = isempty(obj.mrows) || isempty(obj.fileext) || ~strcmp(fext, obj.fileext);
+            newfile      = isempty(obj.mrows) || isempty(obj.fileext) || ~strcmp(fext, obj.fileext) || ~strcmp(s, obj.fullFID);
 
             % Save file selection info
             [obj.filefolder, obj.filename, obj.fileext] = fileparts(s);
@@ -886,11 +886,6 @@ classdef ImageServer < handle
                     else
                         obj.ReadFromBF
                     end
-            end
-
-            % Forces array based loading when full stack is in
-            if ~obj.lazyloading
-                obj.Source = obj.Stack;
             end
 
             % Ensures image output when class method is called from
@@ -1164,7 +1159,7 @@ classdef ImageServer < handle
 
 
         function ReadFromTiff(obj)
-            % READFROMTIFF will read in a 2D slice 
+            % READFROMTIFF will read in a 2D slice
 
             % Constructs full file id for current image
             s = [obj.filefolder filesep obj.filename obj.fileext];
@@ -1340,7 +1335,7 @@ classdef ImageServer < handle
                 % Bioformats 
                 bfmsg = [bfmsg newline ...
                          'For proper installation of OME Bioformats, ' ...
-                         'visit: ' 
+                         'visit: ' ...
                          'https://docs.openmicroscopy.org/bio-formats/5.7.1/users/matlab/index.html'];
                 warning(bfmsg)
             end

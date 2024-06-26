@@ -353,6 +353,15 @@ classdef VisualizationEngine < handle
                         obj.OverlayVisualization(false)
     
                 end
+
+                % Places major / minor axes over the other plots if desired
+                if obj.eigs
+                    obj.PlotMajMinMoments
+                else
+                    % Clears moments plot
+                    obj.ClearEigPlots
+                end
+
             catch
             end
         end
@@ -449,15 +458,15 @@ classdef VisualizationEngine < handle
             end
 
             
-            if obj.eigs
-                % Places major / minor axes over the other plots if desired
-                obj.PlotMajMinMoments
-
-            elseif ~obj.eigs && ~isempty(obj.Majeig{1})
-                % Clears line plots
-                obj.ClearEigPlots
-
-            end
+            % if obj.eigs
+            %     % Places major / minor axes over the other plots if desired
+            %     obj.PlotMajMinMoments
+            % 
+            % elseif ~obj.eigs && ~isempty(obj.Majeig{1})
+            %     % Clears line plots
+            %     obj.ClearEigPlots
+            % 
+            % end
         end
 
 
@@ -526,13 +535,13 @@ classdef VisualizationEngine < handle
             % Prevents glitching
             obj.Plot.AlphaData = obj.opacity*alphaMap;
 
-            % Places major / minor axes over the other plots if desired
-            if obj.eigs
-                obj.PlotMajMinMoments
-            else
-                % Clears moments plot
-                obj.ClearEigPlots
-            end
+            % % Places major / minor axes over the other plots if desired
+            % if obj.eigs
+            %     obj.PlotMajMinMoments
+            % else
+            %     % Clears moments plot
+            %     obj.ClearEigPlots
+            % end
 
             % Overlayed image visualizations tend to get moved for some
             % reason so this ensures the second axes maintain the same
@@ -637,7 +646,7 @@ classdef VisualizationEngine < handle
 
         function ClearEigPlots(obj)
             % CLEAREIGHPLOTS will clear the eigenvector plots
-            if ~isempty(obj.Majeig)
+            if ~isempty(obj.Majeig{1}) && isa(obj.Majeig{1}, 'matlab.graphics.chart.primitive.Line')
                 for i = 1:numel(obj.Majeig)
                     % Clear major axes
                     obj.Majeig{i}.XData = [];

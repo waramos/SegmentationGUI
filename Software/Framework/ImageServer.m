@@ -75,6 +75,7 @@ classdef ImageServer < handle
 
                     '*.avi; *.mp4; *.mpg; *.mpeg',...
                     'Videos (*.avi, *.mp4, *.mpg, *.mpeg)'};
+        bffileexts
                     
         % BioFormats integration - if user has bfmatlab, the following
         % formats are also compatible with this class:
@@ -116,9 +117,10 @@ classdef ImageServer < handle
             % Check to see that user has bioformats
             if obj.UserHasBF
                 % Appending the BF formats
-                obj.BFReader = bfGetReader;
-                bfformats    = bfGetFileExtensions;
-                obj.filefilt = vertcat(bfformats(1,:), obj.filefilt, bfformats(2:end,:));
+                obj.BFReader   = bfGetReader;
+                bfformats      = bfGetFileExtensions;
+                obj.filefilt   = vertcat(bfformats(1,:), obj.filefilt, bfformats(2:end,:));
+                obj.bffileexts = GetAllBFExtensions;
             end
         end
 
@@ -879,7 +881,13 @@ classdef ImageServer < handle
                         obj.ReadFromVideoFile
                     end
 
-                case {'.czi', '.lms', '.lif', '.ome', '.ome.tiff', '.ome.tif', '.nef', '.nd2', '.ics.', '.ids'}
+                case obj.bffileexts
+                    % Does nothing if user cannot use BF
+                    if isempty(obj.bffileexts)
+                        warning(['User does not have BioFormats. ' ...
+                                 'No data loaded'])
+                        return
+                    end
                     % bioformats compatible file extensions
                     if newfile
                         obj.LoadFromBF(s)

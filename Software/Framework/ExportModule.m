@@ -193,6 +193,8 @@ classdef ExportModule < handle
             % types found in the results array and how many different types
             % were found.
             typeslist = cellfun(@obj.CheckResultType, obj.Results(:), 'UniformOutput', false);
+            notype    = cellfun(@isempty, typeslist);
+            typeslist = typeslist(~notype);
             ntypes    = numel(unique(typeslist));
         end
 
@@ -241,7 +243,9 @@ classdef ExportModule < handle
         end
 
 
-        function pointsonly = CheckForPoints(obj)
+        function pointsonly = OnlyHasPoints(obj)
+            % ONLYHASPOINTS returns true when the results array only has
+            % point detections or contours and no other result types. 
             % Check that data is only composed of point detections
             for i = 1:numel(obj.Results)
                 pointsonly = any(strcmp(obj.CheckResultType(obj.Results{i}), {'pointcloud', 'contour'}));
@@ -254,7 +258,7 @@ classdef ExportModule < handle
 
         function T = PointsAsTable(obj)
             % Checks that there are only points in the results
-            if ~obj.CheckForPoints
+            if ~obj.OnlyHasPoints
                 T = [];
                 return
             end
@@ -592,7 +596,8 @@ classdef ExportModule < handle
             end
 
             % First, converts the results data into masks for any cases
-            % where masks are not present
+            % where masks are not present, e.g. point detections or
+            % contours
             R = obj.Results;
             for j = 1:size(obj.Results, 2)
                 for i = 1:size(obj.Results, 1)
@@ -685,6 +690,10 @@ classdef ExportModule < handle
             elseif strcmp(rtype, 'pointcloud')
                 % Unordered pointcloud
                 Mask = obj.Pointcloud2Mask(R, sz);
+
+            elseif isempty(rtype)
+                % Creates an empty 2D image
+                Mask = false(sz);
 
             end
         end
@@ -1075,7 +1084,7 @@ classdef ExportModule < handle
                        ' a point cloud representing detections or a' ...
                        ' closed curve representing an ROI boundary.' ...
                        newline ...
-                       'No file has been written.'...
+                       'No file has been written. '...
                        'Different result types can only be saved in' ...
                        ' .mat, .json, or .xml'];
                 warning(msg)
@@ -1250,6 +1259,12 @@ classdef ExportModule < handle
             % CHECKRESULTTYPE will look at a cell from a cell array and
             % determine if the data is a contour (closed curve), an
             % unordered point cloud, or a mask.
+
+            % Returns empty when given cell has no data
+            if isempty(R)
+                rtype = [];
+                return
+            end
 
             % Point clouds only have 2 columns prior to parsing
             numcols      = size(R, 2);

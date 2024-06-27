@@ -35,6 +35,7 @@ classdef ImageServer < handle
         % Image
         Stack                      % Holds full ND image array if lazyloading is off or user has directly passed the array into the class
         Slice                      % The current slice being viewed
+        newstackreq                % New stack requested - true when user has changed index 4 or 5 which requires loading a new stack
 
         % Image metadata - persistent and dependent on source
         filefolder                 % Path to file
@@ -184,6 +185,7 @@ classdef ImageServer < handle
             obj.fidx     = 1;
             obj.channel  = 1;
             obj.dim4idx  = 1;
+            obj.channel  = 1;
         end
         
 
@@ -570,7 +572,17 @@ classdef ImageServer < handle
                 return
             end
 
-            % Bound checks requested indices and sets them
+            % Bound checks requested indices and determines which ones
+            % changed
+            d3idx      = obj.CheckD3Bounds(d3idx);
+            d4idx      = obj.CheckD4Bounds(d4idx);
+            d5idx      = obj.CheckD5Bounds(d5idx);
+            idx        = [d3idx d4idx d5idx];
+
+            % Checks if hyper stack dimensions changed
+            idxchanged      = obj.CompareIndices(idx);
+            obj.newstackreq = any(idxchanged(2:3));
+
             obj.SetD3Index(d3idx)
             obj.SetD4Index(d4idx)
             obj.SetD5Index(d5idx)
@@ -732,7 +744,6 @@ classdef ImageServer < handle
             % SETD3INDEX will set the third dimensions index after bounds
             % have been checked. This index represents the position along
             % the z axis in a stack if a stack exists.
-            z         = obj.CheckD3Bounds(z);
             if isempty(z)
                 z = 1;
             end
@@ -744,7 +755,6 @@ classdef ImageServer < handle
             % SETD4INDEX will set the fourth dimension index to either the
             % current timepoint index or the current file index, depending
             % on which there are more of per the data source type.
-            D4 = obj.CheckD4Bounds(D4);
             if isempty(D4)
                 D4 = 1;
             end
@@ -762,7 +772,6 @@ classdef ImageServer < handle
         function SetD5Index(obj, D5)
             % SETD5INDEX will set the fifth dimension index set the current
             % channel
-            D5 = obj.CheckD5Bounds(D5);
             if isempty(D5)
                 D5 = 1;
             end
@@ -836,9 +845,13 @@ classdef ImageServer < handle
 
             end
 
-            % Check if this is a new file being loaded
-            [~, ~, fext] = fileparts(s);
-            newfile      = isempty(obj.mrows) || isempty(obj.fileext) || ~strcmp(fext, obj.fileext) || ~strcmp(s, obj.fullFID);
+            % Check if this is a new file being loaded from a different
+            % place
+            [newfpath, ~, fext] = fileparts(s);
+            newfile      = isempty(obj.mrows) ||...
+                           isempty(obj.fileext) ||...
+                           ~strcmp(newfpath, obj.filefolder) ||...
+                           ~strcmp(fext, obj.fileext);
 
             % Save file selection info
             [obj.filefolder, obj.filename, obj.fileext] = fileparts(s);
@@ -950,7 +963,6 @@ classdef ImageServer < handle
 
             end
         end
-
         
 
         function LoadFromTiff(obj, s)
@@ -984,7 +996,6 @@ classdef ImageServer < handle
             % Performs the actual reading of the 2D image
             obj.ReadFromImageFile
         end
-
 
 
         function LoadFromVideoFile(obj, s)
@@ -1035,6 +1046,7 @@ classdef ImageServer < handle
             end
 
             % Ensures the full 2D slice is loaded upon initial load
+            obj.numfiles = 0;
             obj.SetSize(sz)
             obj.ResetCropCoords
             
@@ -1137,9 +1149,12 @@ classdef ImageServer < handle
         % function to be called in the read method of the class as well as
         % the load method when first initialized. While load functions will
         % initialize metadata and data information prior to loading a 2D
-        % image, these functions will only read the 2D slice. The way in
-        % which this data is read in will depend on crop settings and the
-        % indices that are set to navigate the data sources.
+        % image, these functions will only read the 2D slice and a 3D stack
+        % if lazy loading is off. This prevents full loading of time and
+        % channel dimensions since a user would rarely try to load all 5
+        % dimensions unless they are directly working with arrays. The way 
+        % in which this data is read in will depend on crop settings and 
+        % the indices that are set to navigate the data sources.
         function ReadFromMData(obj)
             % READFROMMDATA will read in a 2D image from the MData variable
             % data source.
@@ -1148,26 +1163,39 @@ classdef ImageServer < handle
             [idx, jdx] = obj.GetCropIndices;
             z          = obj.Slice;
             t          = obj.framenum;
+            c          = obj.channel;
 
             % Dynamic indexing not feasible on matfile but this ensures
             % fast loading of ND array data
             if obj.sizes(3) == 3 || ~obj.lazyloading
                 % Assumes RGB
-                obj.numslices = 1;
-                obj.Stack     = obj.Source.(obj.variable)(idx, jdx, :, 1, 1, 1);
-                obj.Stack     = squeeze(obj.Stack);
+                if obj.newstackreq
+                    % Avoids reloading a stack if its the same one
+                    obj.Stack     = obj.Source.(obj.variable)(idx, jdx, :, t, 1);
+                    obj.Stack     = squeeze(obj.Stack);
+                end
                 obj.Slice     = obj.Stack(idx, jdx, :);
+
+            elseif obj.sizes(3) >3 && ~obj.lazyloading
+                % Assumes stack
+                if obj.newstackreq
+                    % Avoids reloading a stack if its the same one
+                    obj.Stack     = obj.Source.(obj.variable)(idx, jdx, :, t, c);
+                    obj.Stack     = squeeze(obj.Stack);
+                end
+                obj.Slice     = obj.Stack(idx, jdx, z);
+
             else
                 % Grayscale image
-                obj.numslices = 0;
-                obj.Slice     = obj.Source.(obj.variable)(idx, jdx, z, t, 1, 1); % Can add channels and such later
+                obj.Slice     = obj.Source.(obj.variable)(idx, jdx, z, t, c); % Can add channels and such later
                 obj.Slice     = squeeze(obj.Slice);
+
             end
         end
 
 
         function ReadFromTiff(obj)
-            % READFROMTIFF will read in a 2D slice
+            % READFROMTIFF will read in image data from a tif file.
 
             % Constructs full file id for current image
             s = [obj.filefolder filesep obj.filename obj.fileext];
@@ -1182,21 +1210,62 @@ classdef ImageServer < handle
                 x = [1 inf];
             end
 
-            % Stack read when lazy loading off
-            if ~obj.lazyloading || (obj.numslices == 3)
-                % Will only load the full stack when lazy loading is off
-                obj.Stack = tiffreadVolume(s, 'PixelRegion', {[y(1) y(2)], [x(1) x(2)], [1 inf]});
-            end
+            % Z Index
+            z = obj.slice;
 
-            % Reads in 3 channels for RGB or slice for volume
-            if obj.numslices == 3
-                % Assume RGB image
-                obj.Slice = tiffreadVolume(s, 'PixelRegion', {[y(1) y(2)], [x(1) x(2)], [1 inf]});
+            % Stack read when lazy loading off
+            if ~obj.lazyloading
+                % Will only load the full stack when lazy loading is off
+                if obj.newstackreq
+                    % Avoids reloading a stack if its the same one
+                    obj.Stack = tiffreadVolume(s, 'PixelRegion', {[y(1) y(2)], [x(1) x(2)], [1 inf]});
+                end
+
+                if obj.numslices == 3
+                    % RGB case
+                    obj.Slice = obj.Stack;
+                else
+                    % Grayscale case
+                    obj.Slice = obj.Stack(:, :, z);
+                end
             else
-                % Grayscale image
-                obj.Slice = tiffreadVolume(s, 'PixelRegion', {[y(1) y(2)], [x(1) x(2)], [obj.slice obj.slice]});
-                obj.Slice = squeeze(obj.Slice);
+                if obj.numslices == 3
+                    % RGB case
+                    obj.Slice = tiffreadVolume(s, 'PixelRegion', {[y(1) y(2)], [x(1) x(2)], [1 inf]});
+                else
+                    % Grayscale case
+                    obj.Slice = tiffreadVolume(s, 'PixelRegion', {[y(1) y(2)], [x(1) x(2)], [z z]});
+                    obj.Slice = squeeze(obj.Slice);
+                end
             end
+        end
+
+
+        function idxchanged = CompareIndices(obj, idx)
+            % COMPAREINDICES compares a vector of values to the current
+            % indices to determine which dimensions' indices will change.
+            % This function is useful for determining if a stack is already
+            % loaded into memory or a new one needs to be loaded. This
+            % reduces loading overhead by prevent reloads when unnecessary.
+            %
+            % INPUTS:
+            %
+            % idx - a 3 element vector of integers where the elements 
+            % represent the indices of dimensions 3 through 5,
+            % respectively.
+
+            % Original indices prior to reading in data from specified
+            % indices
+            z = obj.slice;
+            t = obj.dim4idx;
+            c = obj.channel;
+
+            % Reshaping the old indices and new indices to match shape
+            oldidx = [z t c];
+
+            % True if indices changed for any dimensions 1-5. Each col is a
+            % dimension of the data array
+            idxchanged = idx ~= oldidx;
         end
 
 
@@ -1209,7 +1278,10 @@ classdef ImageServer < handle
             [idx, jdx] = obj.GetCropIndices;
 
             % Index all of the 3rd dimension in case of RGB images
-            obj.Stack  = squeeze(imread(s));
+            if obj.newstackreq
+                % Avoids reloading a stack if its the same one
+                obj.Stack  = squeeze(imread(s));
+            end
             obj.Slice  = obj.Stack(idx, jdx, :);
         end
 
@@ -1239,15 +1311,22 @@ classdef ImageServer < handle
             % External lazy loading function that converts high dimensional
             % indices to plane indices for the BF reader
             % Stack read when lazy loading off
-            if ~obj.lazyloading || (obj.numslices == 3)
-                I          = LoadFromBioFormatsAsVol(obj.fullFID);
-                obj.Source = I;
-                obj.Stack  = I;
-                obj.Slice  = I(idx, jdx, dimvec(1), dimvec(2), dimvec(3));
+            if ~obj.lazyloading
+                if obj.newstackreq
+                    % Avoids reloading a stack if its the same one
+                    I          = LoadFromBioFormatsAsVol(obj.fullFID);
+                    obj.Stack  = I;
+                end
+
+                % Indexing out requested slice
+                obj.Slice  = obj.Stack(idx, jdx, dimvec(1), dimvec(2), dimvec(3));
                 obj.Slice  = squeeze(obj.Slice);
+
             else
+                % Lazy loading case
                 I         = LoadFromBioFormats(obj.Source, dimvec);
                 obj.Slice = I(idx, jdx);
+
             end
         end
 
@@ -1276,12 +1355,30 @@ classdef ImageServer < handle
             % READFROMARRAY will simply access the preloaded stack and
             % directly read in a 2D slice from it per the indices that are
             % set.
+
             % Grabs crop indices if they exist
             [idx, jdx] = obj.GetCropIndices;
-            if obj.numslices > 1 && obj.numslices ~= 3
-                obj.Slice = obj.Source(idx, jdx, obj.slice, obj.framenum);
+
+            if obj.numslices > 1
+                % Z stack case
+                if ~obj.lazyloading
+                    if obj.newstackreq
+                        % Avoids reloading a stack if its the same one
+                        obj.Stack = obj.Source(idx, jdx, :, obj.dim4idx, obj.channel);
+                    end
+                end
+
+                % RGB case
+                if obj.numslices == 3
+                    obj.Slice = obj.Source(idx, jdx, :, obj.dim4idx, obj.channel);
+                else
+                    obj.Slice = obj.Source(idx, jdx, obj.slice, obj.dim4idx, obj.channel);
+                end
+
             else
-                obj.Slice = obj.Source(idx, jdx, :, obj.framenum);
+                % Single plane
+                obj.Slice = obj.Source(idx, jdx, :, obj.dim4idx, obj.channel);
+
             end
         end
 
@@ -1536,7 +1633,7 @@ classdef ImageServer < handle
             if isempty(fname)
                 fid = [];
             else
-                fid   = fullfile(obj.filefolder, fname);
+                fid = fullfile(obj.filefolder, fname);
             end
         end
 
@@ -1544,8 +1641,9 @@ classdef ImageServer < handle
         function sz = get.sizes(obj)
             % get.size will get all dimensions for the source data loaded
             % up
-
-            sz = [obj.mrows obj.ncols obj.numslices d4];
+            d4 = obj.dim4;
+            d5 = obj.channels;
+            sz = [obj.mrows obj.ncols obj.numslices d4 d5];
         end
 
 

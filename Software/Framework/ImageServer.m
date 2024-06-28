@@ -430,10 +430,14 @@ classdef ImageServer < handle
 
             % file = 0 when user exits, hence a numeric check
             if isnumeric(file)
+                % No file loads
                 return
+            else
+                obj.newstackreq = true;
+            end
 
-            elseif ischar(file)
-                % Forces a size check
+            if ischar(file)
+                % Ensures 2D size data is reset
                 obj.Refresh2D
 
                 % Single file selection
@@ -441,7 +445,7 @@ classdef ImageServer < handle
                 obj.LoadFromString(fpath)
 
             elseif iscell(file)
-                % Forces a size check
+                % Ensures 2D size data is reset
                 obj.Refresh2D
 
                 % Multi file selection - expects same format

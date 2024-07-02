@@ -1,10 +1,11 @@
 function Plugin = Plugin_ToleranceSift
-% SUMMARY:
-% SEG_ENGINECONFIG returns a 'net' of layers and parameters. The layers
-% field of the net struct is a struct describing how the processing layers
-% are connected in terms of input/output. An image is fed into the first
-% layer and the forward functions will pass the output (data) of layers to
-% corresponding connected layers (output - indices of layers to connect to)
+% PLUGIN_TOLERANCESIFT will apply a threshold based off of a percent of the
+% intensity range found in an image. It then sifts based on size.
+
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds and sifts by tolerance on target size';
+    Plugin.IdealData          = 'Low spatiotemporal variance. Known object size.';
+    Plugin.Type               = 'Contour';
 
     % Parameter 1
     Plugin.controls(1).Name   = 'Threshold';
@@ -22,7 +23,7 @@ function Plugin = Plugin_ToleranceSift
     Plugin.controls(2).Max    = 100;
     % Parameter 3
     Plugin.controls(3).Name   = 'Tolerance';
-    Plugin.controls(3).Symbol = '$\alpha';
+    Plugin.controls(3).Symbol = '$\delta';
     Plugin.controls(3).Units  = '% size range';
     Plugin.controls(3).Value  = 100;
     Plugin.controls(3).Min    = 0;

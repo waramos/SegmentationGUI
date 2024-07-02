@@ -5,9 +5,6 @@ function Mask = SiftMask(Mask, sz, tol)
     sz   = sz + [-tol tol];
     sz   = max(sz, 1);
 
-    % TBD
-    sz   = min(sz, 200);
-
     Mask = bwareafilt(Mask, sz);
     Mask = imfill(Mask, "holes");
 end

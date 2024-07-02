@@ -6,11 +6,16 @@ function Plugin = Plugin_BlobHullSeg
 % layer and the forward functions will pass the output (data) of layers to
 % corresponding connected layers (output - indices of layers to connect to)
 
+    % Description of algorithm
+    Plugin.Description        = 'Uses blobs to find a convex hull';
+    Plugin.IdealData          = 'Object of interest has blobs inside';
+    Plugin.Type               = 'Contour';
+
 
     % Parameter 1
     Plugin.controls(1).Name   = 'Sigma';
     Plugin.controls(1).Symbol = '$\sigma';
-    Plugin.controls(1).Units  = 'standard deviation (px)';
+    Plugin.controls(1).Units  = 'std dev';
     Plugin.controls(1).Value  = 2;
     Plugin.controls(1).Min    = 0;
     Plugin.controls(1).Max    = 10;
@@ -30,7 +35,7 @@ function Plugin = Plugin_BlobHullSeg
     Plugin.controls(3).Max    = 1;
 
     % The auto estimation of parameter values
-    Plugin.AutoEstimage       = [2 10 0];
+    Plugin.AutoEstimate       = [2 10 0];
 
     % Layer 2 - first computational layer - binarization layer
     Plugin.Layers(1).Name     = 'cLoG';

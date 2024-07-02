@@ -2,6 +2,11 @@ function Plugin = Plugin_GradSift
 % SUMMARY:
 % PLUGIN_GRADSIFT configures a gradient sifting method
 
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds gradient and sift by size of edge features';
+    Plugin.IdealData          = 'Sharp features with known size';
+    Plugin.Type               = 'Mask';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Gradient Threshold';
     Plugin.controls(1).Symbol = '$\rho';
@@ -27,7 +32,7 @@ function Plugin = Plugin_GradSift
 
     % The auto estimation of parameter values
     % TBD
-    Plugin.AutoParams         = @(I) AutoToleranceSiftEstimate(I);
+    Plugin.AutoEstimate       = @(I) AutoToleranceSiftEstimate(I);
 
     % Threshold applied to gradient magnitude of image
     Plugin.Layers(1).Name     = 'gradient-thresh';

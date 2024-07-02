@@ -1,7 +1,11 @@
 function Plugin = Plugin_GradientThreshold
-% SUMMARY:
 % PLUGIN_GRADIENTTHRESHOLD configures a segmentation method based on
-% thresholding of a gradient
+% thresholding of images' gradient magnitude.
+
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds image gradients (edges)';
+    Plugin.IdealData          = 'Textures, edge features, obvious outline';
+    Plugin.Type               = 'Contour';
 
     % Parameter 1
     Plugin.controls(1).Name   = 'Sigma';
@@ -30,13 +34,13 @@ function Plugin = Plugin_GradientThreshold
 
     % Smooths image
     Plugin.Layers(1).Name     = 'smoothing';
-    Plugin.Layers(1).In       = [1 0 0 ];
+    Plugin.Layers(1).In       = [1 0 0];
     Plugin.Layers(1).DataName = 'preprocessed-image';
     Plugin.Layers(1).Process  = 'Smooths image';
     Plugin.Layers(1).Forward  = @(d, p) RescaleAndSmooth(d{1}, p{1});
     % Clips additional signal
     Plugin.Layers(2).Name     = 'clipping';
-    Plugin.Layers(2).In       = [0 1 0 ];
+    Plugin.Layers(2).In       = [0 1 0];
     Plugin.Layers(2).DataName = 'clipped-image';
     Plugin.Layers(2).Process  = 'Clips image';
     Plugin.Layers(2).Forward  = @(d, p) ClipImage(d{2}, p{2});

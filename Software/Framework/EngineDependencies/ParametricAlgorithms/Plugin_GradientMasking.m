@@ -3,6 +3,11 @@ function Plugin = Plugin_GradientMasking
 % PLUGIN_GRADIENTTHRESHOLD configures a segmentation method based on
 % thresholding of a gradient
 
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds gradient of image and performs a convex hull';
+    Plugin.IdealData          = 'Consistent feature gradients';
+    Plugin.Type               = 'Contour';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Sigma';
     Plugin.controls(1).Symbol = '$\sigma';

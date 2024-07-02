@@ -3,6 +3,11 @@ function Plugin = Plugin_DetectBlobCentroids
 % PLUGIN_INTENSITYTHRESHOLD lays out the plugin configuration for a
 % segmentation method that is based on intensity thresholding
 
+    % Description of algorithm
+    Plugin.Description        = 'Finds blob centroids with a difference of gaussian';
+    Plugin.IdealData          = 'Known object size and seperable features';
+    Plugin.Type               = 'Pointcloud';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Sigma 1';
     Plugin.controls(1).Symbol = '$\sigma_1';

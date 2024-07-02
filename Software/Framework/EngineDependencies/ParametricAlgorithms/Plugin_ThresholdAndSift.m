@@ -3,6 +3,12 @@ function Plugin = Plugin_ThresholdAndSift
 % PLUGIN_THRESHOLDANDSIFT will threshold an image and then sift based off
 % of size of the connected components
 
+
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds and sifts by range on size of objects';
+    Plugin.IdealData          = 'Known object size range with constant intensity';
+    Plugin.Type               = 'Contour';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Threshold';
     Plugin.controls(1).Symbol = '$\rho';

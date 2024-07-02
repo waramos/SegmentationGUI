@@ -3,6 +3,11 @@ function Plugin = Plugin_BradleyMasked
 %  PLUGIN_BRADLEYMASKED configures a segmentation method for adaptive
 %  thresholding
 
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds with a locally adaptive threshold';
+    Plugin.IdealData          = 'Varying feature intensity';
+    Plugin.Type               = 'Contour';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Radius';
     Plugin.controls(1).Symbol = '$\rho';

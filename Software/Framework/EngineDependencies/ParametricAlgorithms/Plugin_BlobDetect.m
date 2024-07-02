@@ -1,7 +1,13 @@
 function Plugin = Plugin_BlobDetect
-% SUMMARY:
 % PLUGIN_BLOBDETECT lays out the plugin configuration for a blob detection
-% method that first threshold the image, then smooths out pixels/
+% method that first filters out local variance by applying an ordered
+% filter with a known size. A threshold is then applied to the image and
+% the centroids to blobs are found.
+
+    % Description of algorithm
+    Plugin.Description        = 'Filters locally to improve blob centroid detection';
+    Plugin.IdealData          = 'Varying feature intensity with known object size.';
+    Plugin.Type               = 'Pointcloud';
 
     % Parameter 1
     Plugin.controls(1).Name   = 'Radius';
@@ -57,8 +63,8 @@ end
 function Mask = ThresholdWFill(I, threshold)
 % THRESHOLDWFILL will perform a threshold with a single value and then fill
 % in the resulting mask after performing a minor morphological open.
-    % Applies simple threshold
 
+    % Applies simple threshold
     [mn, mx]  = bounds(I(:));
     mx_mn     = mx-mn;
     threshold = (threshold/100)*mx_mn + mn;
@@ -73,9 +79,9 @@ end
 
 function P = PixelCluster(Mask, ~)
 % PIXELCLUSTER will get index values to clusters of pixels to create a
-% point cloud
-    [y, x] = find(Mask);
-    P      = [x, y];
+% point cloud representing the centroids of the connected components
+    C = regionprops(Mask, 'Centroid');
+    P = cat(1, C.Centroid);
 end
 
 

@@ -3,6 +3,11 @@ function Plugin = Plugin_IntensityThreshold
 % PLUGIN_INTENSITYTHRESHOLD lays out the plugin configuration for a
 % segmentation method that is based on intensity thresholding
 
+    % Description of algorithm
+    Plugin.Description        = 'Thresholds and computes convex hull';
+    Plugin.IdealData          = 'Invariant relative range and variance';
+    Plugin.Type               = 'Contour';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Threshold';
     Plugin.controls(1).Symbol = '$\epsilon';

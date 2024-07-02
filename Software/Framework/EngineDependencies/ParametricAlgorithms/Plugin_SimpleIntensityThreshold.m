@@ -3,6 +3,11 @@ function Plugin = Plugin_SimpleIntensityThreshold
 % PLUGIN_INTENSITYTHRESHOLD lays out the plugin configuration for a
 % segmentation method that is based on intensity thresholding
 
+    % Description of algorithm
+    Plugin.Description        = 'Applies global threshold';
+    Plugin.IdealData          = 'Consistent objects intensity';
+    Plugin.Type               = 'Contour';
+
     % Parameter 1
     Plugin.controls(1).Name   = 'Threshold';
     Plugin.controls(1).Value  = 100;

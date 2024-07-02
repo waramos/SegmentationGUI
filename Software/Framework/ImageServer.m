@@ -1585,15 +1585,8 @@ classdef ImageServer < handle
                 midx     = [isMB isGB isTB];
                 memscale = [1e6 1e9 1e12];
                 memscale = memscale(midx);
-                
-                % Simple print - not needed 
-                % mLabels  = {'MB', 'GB', 'TB'};
-                % mlabel   = mLabels(midx);
-                % msg      = ['Memory Available: ' c(1:end-1) ' ' mlabel{:}];
-                % disp(msg)
-
-                freemem = str2double(c(1:end-1));
-                freemem = freemem*memscale;
+                freemem  = str2double(c(1:end-1));
+                freemem  = freemem*memscale;
 
             else
                 error('Platform not supported.')

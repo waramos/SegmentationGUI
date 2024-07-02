@@ -76,8 +76,13 @@ classdef ImageServer < handle
 
                     '*.avi; *.mp4; *.mpg; *.mpeg',...
                     'Videos (*.avi, *.mp4, *.mpg, *.mpeg)'};
-        bffileexts
-                    
+
+        % Video reader formats
+        vidformats
+
+        % BioFormats file extensions property - used if user has BF
+        bffileexts 
+
         % BioFormats integration - if user has bfmatlab, the following
         % formats are also compatible with this class:
         % https://bio-formats.readthedocs.io/en/v7.2.0/formats/dataset-table.html
@@ -114,6 +119,10 @@ classdef ImageServer < handle
             if nargin == 1
                 obj.LoadImage(fid)
             end
+
+            % Video reader compatible formats
+            vf             = VideoReader.getFileFormats;
+            obj.vidformats = {vf.Extension};
 
             % Check to see that user has bioformats
             if obj.UserHasBF
@@ -820,7 +829,10 @@ classdef ImageServer < handle
                 s = [obj.filefolder filesep obj.filename obj.fileext];
             elseif (~isa(obj.Source, 'matlab.io.datastore.ImageDatastore') && obj.fidx ~= 1) || ~obj.dataloaded 
                 % Memory check with 500 MB threshold allowed
-                obj.MemoryCheck(s, 5e8, obj.lazyloading)
+                good2load = obj.MemoryCheck(s, 5e8, obj.lazyloading);
+                if ~good2load
+                    return
+                end
             end
 
             % Getting number of output arguments
@@ -1406,6 +1418,123 @@ classdef ImageServer < handle
                 I = obj.Slice;
             end
         end
+
+
+        function good2load = MemoryCheck(obj, fid, threshold, lazyloadflag)
+            % MEMORYCHECK will compare the size of the file the user wants
+            % to load in to the available memory on the computer. If the
+            % file is larger than the available RAM, the file will not load
+            % as this function will throw an error and display a message
+            % for the user. The fraction argument is a scaling factor used
+            % in case of lazy loading as the user might only be loading a
+            % single z plane rather than an entire stack.
+
+            % Threshold for memory to be reserved  - 500 MB by default
+            if nargin < 2 || isempty(threshold)
+                threshold = 5e8;
+            end
+
+            % Lazy loading reduces memory load for tif stacks and video
+            % files
+            [~, ~, ext] = fileparts(fid);
+            istiff      = contains(ext, {'tif', 'tiff'});
+            isvid       = contains(ext, obj.vidformats);
+            if lazyloadflag && istiff
+                finfo   = imfinfo(fid);
+                zslices = numel(finfo);
+                factor  = 1/zslices;
+                
+            elseif lazyloadflag && isvid
+                vidobj  = VideoReader(fid);
+                tpts    = vidobj.NumFrames;
+                factor  = 1/tpts;
+
+            else
+                factor  = 1;
+
+            end
+
+            % System's available memory
+            if ispc
+                % PC (windows) uses GB
+                [~, m]  = memory;
+                freemem = m.PhysicalMemory.Available;
+
+            elseif isunix && ~ismac
+                % Linux used kb
+                [~,w]   = unix('free | grep Mem');
+                stats   = str2double(regexp(w, '[0-9]*', 'match'));
+                freemem = stats(end);
+                freemem = freemem*1e3;
+
+            elseif ismac
+                % Mac uses variable memory magnitude
+                [~, c] = unix('top -l 1 | grep -E "^Phys"');
+                idx    = regexp(c, 'unused');
+                idxs   = regexp(c, ',');
+
+                % Finds the number of bytes available
+                nidx     = idxs(end)+2:idx-2;
+                c        = c(nidx);
+
+                % Scale/Magnitude of number of bytes
+                isGB     = contains(c, 'G');
+                isMB     = contains(c, 'M');
+                isTB     = contains(c, 'T');
+                midx     = [isMB isGB isTB];
+                memscale = [1e6 1e9 1e12];
+                memscale = memscale(midx);
+                freemem  = str2double(c(1:end-1));
+                freemem  = freemem*memscale;
+
+            else
+                % Unknown / unsupported platform
+                error('Platform not supported.')
+                
+            end
+
+            % File size in bytes - extension agnostic
+            fileinfo = dir(fid);
+            fmemsize = fileinfo.bytes;
+            fmemsize = fmemsize*factor;
+
+            % File size converted to GB
+            freemem   = freemem/(1e9);
+            fmemsize  = fmemsize/(1e9);
+            threshold = threshold/(1e9);
+
+            % Suggests the user is out of memory
+            outofmem = fmemsize > (freemem-threshold);
+
+            % UI case enables user override
+            if outofmem
+                % Prints warning to CL
+                msg = 'Please check memory usage. File may be too large to load';
+                warning(msg)
+
+                % Launches a UI for potential user override
+                msg       = ['Current free memory: ' num2str(freemem) ' GB'];
+                msg       = [msg newline 'File size: ' num2str(fmemsize) ' GB'];
+                msg       = [msg newline newline 'Load anyways?'];
+                selection = uiconfirm(gcf, msg, 'Limited Memory', 'Options', {'Yes', 'No'}, 'DefaultOption', 'No');
+            else
+                selection = 'Yes';
+            end
+
+            % User will not load data 
+            if ~strcmp(selection, 'Yes')
+                good2load = false;
+                return
+            end
+
+            % Displays table w/ info on remaining memory and file size
+            Header = {'File Size (GB)', 'Remaining Memory (GB)'};
+            T      = table(fmemsize, freemem, 'VariableNames', Header);
+            disp(T)
+
+            % User can load data
+            good2load = true;
+        end
     end
 
 
@@ -1517,104 +1646,6 @@ classdef ImageServer < handle
                 ImAqObjList(i).name    = imaqobj.DeviceInfo.DeviceName;
                 ImAqObjList(i).devName = imaqobj.AdaptorName;
                 ImAqObjList(i).id      = [imaqobj.DeviceIDs{:}];
-            end
-        end
-
-
-        function MemoryCheck(fid, threshold, lazyloadflag)
-            % MEMORYCHECK will compare the size of the file the user wants
-            % to load in to the available memory on the computer. If the
-            % file is larger than the available RAM, the file will not load
-            % as this function will throw an error and display a message
-            % for the user. The fraction argument is a scaling factor used
-            % in case of lazy loading as the user might only be loading a
-            % single z plane rather than an entire stack.
-
-            % Threshold for memory to be reserved  - 500 MB by default
-            if nargin < 2 || isempty(threshold)
-                threshold = 5e8;
-            end
-
-            % Lazy loading reduces memory load for tif stacks and video
-            % files
-            [~, ~, ext] = fileparts(fid);
-            istiff      = contains(ext, {'tif', 'tiff'});
-            isvid       = contains(ext, {'mp4', 'avi'});
-            if lazyloadflag && istiff
-                finfo   = imfinfo(fid);
-                zslices = numel(finfo);
-                factor  = 1/zslices;
-                
-            elseif lazyloadflag && isvid
-                vf      = VideoReader(fid);
-                tpts    = vf.NumFrames;
-                factor  = 1/tpts;
-
-            else
-                factor  = 1;
-
-            end
-
-            % System's available memory
-            if ispc
-                % PC (windows) uses GB
-                [~, m]  = memory;
-                freemem = m.PhysicalMemory.Available;
-
-            elseif isunix && ~ismac
-                % Linux used kb
-                [~,w]   = unix('free | grep Mem');
-                stats   = str2double(regexp(w, '[0-9]*', 'match'));
-                freemem = stats(end);
-                freemem = freemem*1e3;
-
-            elseif ismac
-                % Mac uses variable memory magnitude
-                [~, c] = unix('top -l 1 | grep -E "^Phys"');
-                idx    = regexp(c, 'unused');
-                idxs   = regexp(c, ',');
-
-                % Finds the number of bytes available
-                nidx     = idxs(end)+2:idx-2;
-                c        = c(nidx);
-
-                % Scale/Magnitude of number of bytes
-                isGB     = contains(c, 'G');
-                isMB     = contains(c, 'M');
-                isTB     = contains(c, 'T');
-                midx     = [isMB isGB isTB];
-                memscale = [1e6 1e9 1e12];
-                memscale = memscale(midx);
-                freemem  = str2double(c(1:end-1));
-                freemem  = freemem*memscale;
-
-            else
-                error('Platform not supported.')
-                
-            end
-
-            % File size in bytes
-            file_info = dir(fid);
-            MemSz     = file_info.bytes;
-            MemSz     = MemSz*factor;
-
-            % Convert to GB
-            freemem   = freemem/(1e9);
-            MemSz     = MemSz/(1e9);
-            threshold = threshold/(1e9);
-
-            if MemSz < (freemem-threshold)
-                % Displays table w/ info on remaining memory and file size
-                Header = {'File Size (GB)', 'Remaining Memory (GB)'};
-                T      = table(MemSz, freemem, 'VariableNames', Header);
-                disp(T)
-                return
-            else
-                % Displays error letting user know that the data they want
-                % to load up is too large
-                msg = ['Cannot load due to limited memory: ' num2str(freemem) ' GB'];
-                errordlg(msg, 'File Too Large')
-                error(msg)
             end
         end
     end

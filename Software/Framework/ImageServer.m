@@ -172,6 +172,9 @@ classdef ImageServer < handle
                 % Will load new image via ui prompt window
                 obj.SetupFileSource(obj.filefolder);
 
+            elseif iscell(s)
+                obj.SetupMultiFileSource(s)
+
             end
 
             % Checks to ensure data is properly formated in terms of data
@@ -289,7 +292,7 @@ classdef ImageServer < handle
 
                 case 'Folder'
                     % Use prompted to select folder of files w/ same format
-                    obj.SetupFolderSource
+                    obj.SetupMultiFileSource
 
                 case 'File'
                     % Single file or multiple files read in sequentially
@@ -397,11 +400,14 @@ classdef ImageServer < handle
         end
 
 
-        function SetupFolderSource(obj, f)
-            % SETUPFOLDERSOURCE will prompt user to select a folder to 
-            % load files from.
-            % Creates image data store based off of a folder
-            % selected by the user
+        function SetupMultiFileSource(obj, f)
+            % SETUPMULTIFILESOURCE will prompt user to select a folder to 
+            % load files from or take input. If the user has passed in a
+            % cell array of filepaths, they can be accessed sequentially.
+            % Creates image data store based off of a folder or cell array
+            % of files
+
+            % User selects folder
             if nargin < 2 || isempty(f)
                 f     = mfilename('fullpath');
                 cpath = fileparts(f);
@@ -409,10 +415,13 @@ classdef ImageServer < handle
             end
 
             % Sets up an imagedatastore (imds) to load in files
-            if ischar(f) || isstring(f)
+            if ischar(f) || isstring(f) || iscell(f)
+                obj.Refresh2D
                 obj.Source   = imageDatastore(f, 'ReadFcn', @obj.ReadFromMultipleFiles);
                 obj.numfiles = numel(obj.Source.Files);
                 obj.fidx     = 1; % init file index
+                obj.Read
+
             else
                 return
             end
@@ -454,17 +463,9 @@ classdef ImageServer < handle
                 obj.LoadFromString(fpath)
 
             elseif iscell(file)
-                % Ensures 2D size data is reset
-                obj.Refresh2D
-
                 % Multi file selection - expects same format
-                files        = cellfun(@(x) fullfile(folder, x), file, 'UniformOutput', false);
-                obj.Source   = imageDatastore(files, 'ReadFcn', @obj.ReadFromMultipleFiles);
-                obj.numfiles = numel(obj.Source.Files);
-
-                % Load in the first file from the datastore
-                obj.fidx     = 1;
-                obj.Read
+                files = cellfun(@(x) fullfile(folder, x), file, 'UniformOutput', false);
+                obj.SetupMultiFileSource(files)
 
             end
         end

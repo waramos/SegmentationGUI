@@ -180,7 +180,7 @@ classdef SegmentationEngine < handle
                 obj.SetRaw(Image)
                 Image = obj.PreprocessImage(obj.Raw);
                 
-                % If computation limited to ROI, taper is applied
+                % Tukey window based tapering
                 if ~isempty(obj.taper) || any(~obj.taper(:))
                     try
                         ogclass = class(Image);
@@ -236,7 +236,7 @@ classdef SegmentationEngine < handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % PREPROCESSING PIPELINE:
             % Squaring, log scaling, Inversion, Denoise, Transform, 
-            % CNN (AI) feed forward, taper
+            % Deep network activations, taper
 
             if obj.square
                 Image = Image.^2;

@@ -278,18 +278,21 @@ classdef SegmentationEngine < handle
                 else
                     pgdlg = [];
                 end
+
+                % Deep Network preprocessing of image
                 if isempty(obj.NetworkFun)
                     obj.SetAINetwork([], pgdlg)
                     if ~isempty(pgdlg)
                         pgdlg.Message = 'Network Loading';
                     end
                 end
+
                 if ~isempty(obj.NetworkFun)
                     if ~isempty(pgdlg) && isvalid(pgdlg)
                         pgdlg.Message = 'Network processing data';
                     end
                     Image = obj.NetworkFun(Image, obj.Network);
-                    % disp('Image preprocessed by CNN')
+                    disp('Image preprocessed by network')
                 else
                     obj.ai = false;
                 end

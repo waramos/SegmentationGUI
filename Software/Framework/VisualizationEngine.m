@@ -480,7 +480,7 @@ classdef VisualizationEngine < handle
                 return
             end
 
-            % Will alter the points if there is a crop
+            % Will alter the mask to be a cropped region if requested
             D  = obj.Data;
             r  = obj.croprows;
             c  = obj.cropcols;
@@ -492,9 +492,9 @@ classdef VisualizationEngine < handle
 
             % Transposes if transpose is on
             if obj.transposed
-                D = pagetranspose(D);
+                D = D';
             end
-            D = double(D);
+            % D = double(D);
 
             if isempty(obj.Plot)
                 % Initial image plot handle and image aspect ratio
@@ -504,12 +504,10 @@ classdef VisualizationEngine < handle
                 if ismask
                     % Mask has binary colormap
                     clrmap   = [0 0 0; obj.color];
-                    alphaMap = D;
 
                 else
                     % Labels have unique colormap, label scaled alpha
                     clrmap   = obj.cmap{2};
-                    alphaMap = D/max(D(:));
 
                 end
 
@@ -519,21 +517,13 @@ classdef VisualizationEngine < handle
             else
                 % Directly alters CData for efficient visualization
                 obj.Plot.CData = D;
-
-                if ismask
-                    % Only masked region shows up
-                    alphaMap = D>0;
-
-                else
-                    % Scaled by label
-                    alphaMap = D/max(D(:));
-
-                end
-
             end
 
-            % Prevents glitching
-            obj.Plot.AlphaData = obj.opacity*alphaMap;
+            % Setting Alpha with alpha as a map 
+            % obj.Plot.AlphaData = obj.opacity*alphaMap;
+
+            % Faster to set scalar across the image
+            obj.Plot.AlphaData = obj.opacity;
 
             % % Places major / minor axes over the other plots if desired
             % if obj.eigs
@@ -546,7 +536,7 @@ classdef VisualizationEngine < handle
             % Overlayed image visualizations tend to get moved for some
             % reason so this ensures the second axes maintain the same
             % position as the primary axes to remain properly aligned
-            obj.UIAxes2.InnerPosition = obj.UIAxes.InnerPosition;
+            % obj.UIAxes2.InnerPosition = obj.UIAxes.InnerPosition;
         end
 
 

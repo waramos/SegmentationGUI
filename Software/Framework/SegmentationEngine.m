@@ -1427,7 +1427,7 @@ classdef SegmentationEngine < handle
 
                 elseif i > 1 && i < obj.nlayers+1
                     % Computational layer outputs
-                    name = ['Layer ' num2str(i-1) ' Output: ' DataNames{i}];
+                    name = ['Layer ' num2str(i-1) ' Output: ' DataNames{i-1}];
                     title(ax, name, 'FontSize', 14, 'FontName', FName, 'Color', FColor)
                     try
                         pmsg = obj.Plugin.Layers(i-1).Process;

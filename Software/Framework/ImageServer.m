@@ -32,6 +32,9 @@ classdef ImageServer < handle
 
 
     properties (GetAccess = public, SetAccess = private)
+        % Parent GUI
+        GUI
+
         % Image
         Stack                      % Holds full ND image array if lazyloading is off or user has directly passed the array into the class
         Slice                      % The current slice being viewed
@@ -131,6 +134,20 @@ classdef ImageServer < handle
                 bfformats      = bfGetFileExtensions;
                 obj.filefilt   = vertcat(bfformats(1,:), obj.filefilt, bfformats(2:end,:));
                 obj.bffileexts = GetAllBFExtensions;
+            end
+        end
+
+        function SetGUIHandle(obj, f)
+            % SETGUIHANDLE allows user to set a GUI uifigure handle to
+            % enable certain prompt functionality. Otherwise, terminal line
+            % interactivity is used by default.
+            if isa(f, 'matlab.ui.Figure')
+                obj.GUI = f;
+            else
+                msg = 'Input was not a uifigure.';
+                msg = [msg newline 'No GUI figure handle was passed' ...
+                       'into the class.'];
+                warning(msg)
             end
         end
 
@@ -1470,9 +1487,9 @@ classdef ImageServer < handle
 
             elseif ismac
                 % Mac uses variable memory magnitude
-                [~, c] = unix('top -l 1 | grep -E "^Phys"');
-                idx    = regexp(c, 'unused');
-                idxs   = regexp(c, ',');
+                [~, c]   = unix('top -l 1 | grep -E "^Phys"');
+                idx      = regexp(c, 'unused');
+                idxs     = regexp(c, ',');
 
                 % Finds the number of bytes available
                 nidx     = idxs(end)+2:idx-2;
@@ -1513,17 +1530,31 @@ classdef ImageServer < handle
                 msg = 'Please check memory usage. File may be too large to load';
                 warning(msg)
 
-                % Launches a UI for potential user override
+                % Message to user to enable override
                 msg       = ['Current free memory: ' num2str(freemem) ' GB'];
                 msg       = [msg newline 'File size: ' num2str(fmemsize) ' GB'];
+                %msg       = [msg newline 'Memory buffer'];
                 msg       = [msg newline newline 'Load anyways?'];
-                selection = uiconfirm(gcf, msg, 'Limited Memory', 'Options', {'Yes', 'No'}, 'DefaultOption', 'No');
+
+                if ~isempty(obj.GUI)
+                    % Launches a UI for potential user override
+                    selection = uiconfirm(obj.GUI, msg,...
+                                          'Limited Memory', 'Options',...
+                                          {'Yes', 'No'},...
+                                          'DefaultOption', 'No');
+                else
+                    % Terminal line input for override
+                    msg       = [msg newline ...
+                                 'Please type yes or no and hit enter.'...
+                                 newline];
+                    selection = input(msg, 's');
+                end
             else
                 selection = 'Yes';
             end
 
             % User will not load data 
-            if ~strcmp(selection, 'Yes')
+            if ~strcmpi(selection, 'Yes')
                 good2load = false;
                 return
             end

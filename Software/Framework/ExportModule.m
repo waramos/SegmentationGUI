@@ -248,10 +248,9 @@ classdef ExportModule < handle
             % point detections or contours and no other result types. 
             % Check that data is only composed of point detections
             for i = 1:numel(obj.Results)
-                pointsonly = any(strcmp(obj.CheckResultType(obj.Results{i}), {'pointcloud', 'contour'}));
-                if ~pointsonly
-                    return
-                end
+                [~, typeslist] = obj.ResultsFormatInfo;
+                ispoints       = contains(typeslist, {'pointcloud', 'contour'}) & ~contains(typeslist, 'mask');
+                pointsonly     = all(ispoints);
             end
         end
 
@@ -1007,8 +1006,13 @@ classdef ExportModule < handle
                     S.SegmentationInfo(i).ImageHeight  = obj.mrows;
                 else
                     % Pointclouds and contours have coordinates saved
-                    X = P{i}(:,1);
-                    Y = P{i}(:,2);
+                    try
+                        X = P{i}(:,1);
+                        Y = P{i}(:,2);
+                    catch
+                        X = [];
+                        Y = [];
+                    end
                     S.SegmentationInfo(i).X = X;
                     S.SegmentationInfo(i).Y = Y;
                 end
@@ -1270,15 +1274,16 @@ classdef ExportModule < handle
             numcols      = size(R, 2);
             ispointcloud = numcols == 2;
             isclosed     = all(R(1,:) == R(end, :));
+            isonepoint   = size(R, 1) == 1;
 
             % A mask image will be larger than 2 pixels across
             ismask       = numcols > 2;
 
             % Result type 
-            if ispointcloud && isclosed
+            if ispointcloud && isclosed && ~isonepoint
                 rtype = 'contour';
 
-            elseif ispointcloud && ~isclosed
+            elseif ispointcloud && (~isclosed || isonepoint)
                 rtype = 'pointcloud';
 
             elseif ismask
@@ -1312,8 +1317,8 @@ classdef ExportModule < handle
             % POINTCLOUD2MASK 
             R      = round(R);
             R      = max(R, 1);
-            x      = min(R(1,:), sz(2));  % x coordinate
-            y      = min(R(2,:), sz(1));  % y coordinate
+            x      = min(R(:,1), sz(2));  % x coordinate
+            y      = min(R(:,2), sz(1));  % y coordinate
             idx    = sub2ind(sz, y, x);
             R      = false(sz);
             R(idx) = 1;

@@ -595,7 +595,7 @@ classdef SegmentationEngine < handle
             % Alpha flag will determine whether alpha shape will compute or
             % exact pixel boundary will be found
             if AlphaFlag
-                Msk   = padarray(Msk, [3 3], 0, 'both');
+                Msk    = padarray(Msk, [3 3], 0, 'both');
                 s      = [0 1 0; 1 1 1; 0 1 0];
                 bd     = imerode(Msk, s) ~= Msk;
                 bd     = bd(4:end-3, 4:end-3);

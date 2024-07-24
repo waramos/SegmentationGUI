@@ -14,7 +14,7 @@ function Plugin = Plugin_DetectBlobCentroids
     Plugin.controls(1).Units  = '';
     Plugin.controls(1).Value  = 2;
     Plugin.controls(1).Min    = 0;
-    Plugin.controls(1).Max    = 20;
+    Plugin.controls(1).Max    = 100;
 
     % Parameter 2
     Plugin.controls(2).Name   = 'Sigma 2';
@@ -22,7 +22,7 @@ function Plugin = Plugin_DetectBlobCentroids
     Plugin.controls(2).Units  = '';
     Plugin.controls(2).Value  = 5;
     Plugin.controls(2).Min    = 0;
-    Plugin.controls(2).Max    = 20;
+    Plugin.controls(2).Max    = 100;
 
     % Parameter 3
     Plugin.controls(3).Name   = 'Threshold';

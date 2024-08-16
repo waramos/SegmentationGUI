@@ -1098,7 +1098,7 @@ classdef ExportModule < handle
             
             % Settings Worksheet: Writing the settings
             Settings = rmfield(obj.Allinfo.SegmentationInfo, {'RegionProps', 'Results'});
-            T        = struct2table(Settings);
+            T        = struct2table(Settings, 'AsArray', true);
             writetable(T, fid, 'FileType','spreadsheet', 'Sheet', 'Settings')
 
             % Results Worksheet: Writing the points as a table
